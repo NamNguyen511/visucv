@@ -14,6 +14,10 @@ Build the next unbuilt page in `topics` order (`lib/algos/index.ts`); the MVP is
 1. `lib/algos/<id>.ts` implementing `Algorithm` (`lib/algos/types.ts`).
 2. Register it in `lib/algos/index.ts` (both `algorithms` and its `topics` entry).
 3. `lib/algos/<id>.test.ts`: check `run()` against a brute-force or hand-checked answer, and that the last step equals `run()`.
+4. Write `meta.lead` and `explain` (book notation). Budget, enforced by `lib/algos/explain.test.ts`:
+   lead = one sentence ≤ 25 words; 2–4 ideas (bold term + ≤ 22 words); 2–3 "try this" items that
+   name a control. Formulas are KaTeX TeX; split multi-part formulas into stacked lines
+   (`\begin{gathered}…\\…\end{gathered}`); e2e fails if any formula needs sideways scrolling on a phone.
 The player, home-page card and e2e smoke tests pick the page up automatically.
 
 ## Conventions

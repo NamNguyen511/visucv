@@ -58,11 +58,26 @@ export const otsu: Algorithm = {
     title: "Thresholding & Otsu's Method",
     topic: "Binary images",
     ref: "Birchfield, Ch. 3 — Thresholding, Erosion, and Dilation",
-    blurb:
-      "Thresholding turns a gray image into a binary one: every pixel above t becomes foreground. Otsu picks t " +
-      "automatically by trying every level and keeping the one that best separates the histogram into two " +
-      "classes, measured by the between-class variance σ²_B(t). It shines on two clear peaks and struggles " +
-      "with three, or when one class is tiny.",
+    lead: "Turn a gray image into black and white by trying every threshold and keeping the one that best separates the two classes.",
+  },
+  explain: {
+    ideas: [
+      { term: "Threshold", text: "Every pixel brighter than t becomes foreground; everything else becomes background." },
+      { term: "Two classes", text: "Each t splits the histogram into dark pixels (≤ t) and bright pixels (> t)." },
+      { term: "Between-class variance", text: "Scores a split: large when both classes are big and their means are far apart." },
+      { term: "Limits", text: "Works on two clear peaks; struggles with three peaks or a tiny object." },
+    ],
+    formulas: [
+      { label: "Class weights", tex: String.raw`\omega_0(t)=\sum_{i\le t} p_i,\qquad \omega_1(t)=1-\omega_0(t)`, note: "pᵢ = share of pixels with level i" },
+      { label: "Class means", tex: String.raw`\begin{gathered}\mu_0(t)=\frac{1}{\omega_0}\sum_{i\le t} i\,p_i\\ \mu_1(t)=\frac{1}{\omega_1}\sum_{i>t} i\,p_i\end{gathered}` },
+      { label: "Between-class variance", tex: String.raw`\sigma_B^2(t)=\omega_0\,\omega_1\,(\mu_0-\mu_1)^2` },
+      { label: "Otsu's threshold", tex: String.raw`t^*=\arg\max_t\ \sigma_B^2(t)`, note: "ties keep the smallest t" },
+    ],
+    tryThis: [
+      "Press play and watch the variance curve grow: its peak is where t* lands.",
+      "Set Image to three peaks: the middle band gets split by noise.",
+      "Raise Noise σ to 35: the histogram peaks overlap and speckle appears.",
+    ],
   },
   params: [
     { key: "image", label: "Image", options: ["two peaks", "small object", "three peaks"], default: "two peaks", input: true },

@@ -53,7 +53,14 @@ export type Plot = {
 };
 
 export type Algorithm = {
-  meta: { id: string; title: string; topic: string; ref: string; blurb: string };
+  /** lead: one sentence, ≤ 25 words, saying what the algorithm does. */
+  meta: { id: string; title: string; topic: string; ref: string; lead: string };
+  /** Shown below the demo. Budget enforced by lib/algos/explain.test.ts. */
+  explain: {
+    ideas: { term: string; text: string }[];
+    formulas?: { label: string; tex: string; note?: string }[];
+    tryThis: string[];
+  };
   params: Param[];
   pseudocode: string[];
   /** Panel captions for the current params. */

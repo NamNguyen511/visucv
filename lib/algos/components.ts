@@ -64,11 +64,24 @@ export const components: Algorithm = {
     title: "Flood Fill & Connected Components",
     topic: "Binary images",
     ref: "Birchfield, Ch. 4 — Flood Fill and Connected Components",
-    blurb:
-      "Flood fill grows a region from one seed pixel: take a pixel from the frontier, label it, add its " +
-      "neighbours, repeat. A stack dives down one path first; a queue spreads in rings. Labeling every blob " +
-      "is just flood fill from each unlabeled pixel in raster order. (OpenCV uses a faster two-pass " +
-      "union-find; the answer is the same.) Try 4- vs 8-connectivity on the diagonal staircase.",
+    lead: "Grow a region outward from one seed pixel, then give every separate blob in the image its own label.",
+  },
+  explain: {
+    ideas: [
+      { term: "Frontier", text: "Pixels still to visit. Take one, label it, add its neighbours, repeat." },
+      { term: "Stack vs queue", text: "A stack dives down one path first; a queue spreads out in rings." },
+      { term: "Labeling", text: "Flood fill from each unlabeled pixel in raster order. OpenCV's union-find gives the same answer." },
+      { term: "Size filter", text: "Erase blobs smaller than a minimum area to drop noise." },
+    ],
+    formulas: [
+      { label: "4-neighbours", tex: String.raw`N_4(x,y)=\{(x\pm1,\,y),\ (x,\,y\pm1)\}` },
+      { label: "8-neighbours", tex: String.raw`N_8(x,y)=N_4(x,y)\cup\{(x\pm1,\,y\pm1)\}`, note: "also touches diagonally" },
+    ],
+    tryThis: [
+      "Switch Frontier to queue: the fill spreads in rings around the seed.",
+      "Label all blobs with Connectivity 4, then 8: the diagonal staircase becomes one blob.",
+      "Set Min blob size to 3 and the specks disappear.",
+    ],
   },
   params: [
     { key: "op", label: "Run", options: ["flood fill", "label all blobs"], default: "flood fill" },

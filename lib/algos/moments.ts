@@ -53,11 +53,28 @@ export const momentsAlgo: Algorithm = {
     title: "Image Moments & Orientation",
     topic: "Shape",
     ref: "Birchfield, Ch. 5 — Image Moments · Ch. 6 — Eigenvectors of the Moment Covariance Matrix",
-    blurb:
-      "Moments summarize a blob with a handful of sums over its pixels: m₀₀ is the area, m₁₀/m₀₀ and m₀₁/m₀₀ " +
-      "the centroid, and the second-order moments its spread. The eigenvectors of that spread give the " +
-      "equivalent ellipse: same area, centroid and orientation as the blob. Watch it settle as pixels are " +
-      "added, then paint your own shape.",
+    lead: "Summarize a blob with a few sums over its pixels: its area, centre, spread, and the direction it points.",
+  },
+  explain: {
+    ideas: [
+      { term: "Raw moments", text: "Sums of xᵖyᵠ over the blob's pixels. m₀₀ is the area." },
+      { term: "Central moments", text: "The same sums measured around the centroid, so moving the blob changes nothing." },
+      { term: "Equivalent ellipse", text: "The covariance's eigenvectors give its axes; the eigenvalues give their lengths." },
+      { term: "Mass, not outline", text: "The ellipse summarizes where the pixels are, so on an L it cuts across the gap." },
+    ],
+    formulas: [
+      { label: "Raw moment", tex: String.raw`m_{pq}=\sum_{x,y} x^p\,y^q\,I(x,y)` },
+      { label: "Centroid", tex: String.raw`\bar x=\frac{m_{10}}{m_{00}},\qquad \bar y=\frac{m_{01}}{m_{00}}` },
+      { label: "Central moments, by shift of origin", tex: String.raw`\begin{gathered}\mu_{20}=m_{20}-\bar x\,m_{10}\\ \mu_{02}=m_{02}-\bar y\,m_{01}\\ \mu_{11}=m_{11}-\bar x\,m_{01}\end{gathered}` },
+      { label: "Covariance", tex: String.raw`\Sigma=\frac{1}{m_{00}}\begin{bmatrix}\mu_{20}&\mu_{11}\\ \mu_{11}&\mu_{02}\end{bmatrix}` },
+      { label: "Orientation", tex: String.raw`\theta=\tfrac12\,\operatorname{atan2}(2\mu_{11},\ \mu_{20}-\mu_{02})`, note: "clockwise on screen, because y points down" },
+      { label: "Semi-axes and eccentricity", tex: String.raw`\begin{gathered}a=2\sqrt{\lambda_{\max}},\qquad b=2\sqrt{\lambda_{\min}}\\ e=\sqrt{1-\lambda_{\min}/\lambda_{\max}}\end{gathered}`, note: "λ = eigenvalues of Σ" },
+    ],
+    tryThis: [
+      "Press play: the ellipse wobbles, then settles as pixels arrive.",
+      "Pick circle (book exercise 1): the eccentricity drops close to 0.",
+      "Pick L-shape, paint more pixels onto one arm, and watch θ swing.",
+    ],
   },
   params: [
     { key: "shape", label: "Shape", options: ["ellipse", "bar", "L-shape", "circle"], default: "ellipse", input: true },

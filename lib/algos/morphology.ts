@@ -66,10 +66,26 @@ export const morphology: Algorithm = {
     title: "Erosion, Dilation, Opening & Closing",
     topic: "Binary images",
     ref: "Birchfield, Ch. 3 — Thresholding, Erosion, and Dilation",
-    blurb:
-      "Slide a structuring element B over a binary image A. Erosion keeps a pixel only if B fits entirely " +
-      "inside the foreground; dilation turns it on if B hits any foreground pixel. Opening (erode → dilate) " +
-      "removes white specks; closing (dilate → erode) fills black holes.",
+    lead: "Slide a small shape B over a binary image to shrink it, grow it, or clean up its noise.",
+  },
+  explain: {
+    ideas: [
+      { term: "Erosion", text: "Keeps a pixel only if B, centred there, fits entirely inside the white region." },
+      { term: "Dilation", text: "Turns a pixel on if B, centred there, hits any white pixel." },
+      { term: "Opening", text: "Erode, then dilate: removes white specks and thin bridges, keeps big shapes." },
+      { term: "Closing", text: "Dilate, then erode: fills small black holes and gaps." },
+    ],
+    formulas: [
+      { label: "Erosion", tex: String.raw`A\ominus B=\{\,z : B_z\subseteq A\,\}`, note: "B_z = B shifted to pixel z; outside the image counts as black" },
+      { label: "Dilation", tex: String.raw`A\oplus B=\{\,z : B_z\cap A\neq\varnothing\,\}` },
+      { label: "Opening", tex: String.raw`A\circ B=(A\ominus B)\oplus B` },
+      { label: "Closing", tex: String.raw`A\bullet B=(A\oplus B)\ominus B` },
+    ],
+    tryThis: [
+      "Step through erosion and read “cells of B on 1”: only 9 / 9 survives.",
+      "Switch Operation to close: the hole in the left square fills in.",
+      "Set Kernel size to 5 (book exercise 2): more specks vanish and corners round off.",
+    ],
   },
   params: [
     { key: "op", label: "Operation", options: ["erode", "dilate", "open", "close"], default: "open" },

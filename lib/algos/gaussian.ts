@@ -44,11 +44,26 @@ export const gaussian: Algorithm = {
     title: "Gaussian Smoothing as a Height Map",
     topic: "Filtering",
     ref: "Birchfield, Ch. 11 — Smoothing and Gaussian Pyramids",
-    blurb:
-      "Treat brightness as height and a gray image becomes a landscape. A Gaussian blur sands it down: noise " +
-      "spikes flatten, hills get wider and lower. Because the 2‑D Gaussian is separable, it runs as one 1‑D " +
-      "pass along every row, then one along every column — far cheaper than a full 2‑D kernel. " +
-      "Try the single spike with “fit height” on: what comes out is the kernel itself.",
+    lead: "Blur an image with a bell-shaped weighted average, shown as a landscape where brightness is height.",
+  },
+  explain: {
+    ideas: [
+      { term: "Smoothing", text: "Noise spikes flatten; hills get wider and lower. A larger σ blurs more." },
+      { term: "Separable", text: "A 2-D Gaussian blur is a row blur followed by a column blur." },
+      { term: "Cheaper", text: "Two 1-D passes cost 2(2r+1) multiplies per pixel instead of (2r+1)²." },
+      { term: "Impulse response", text: "Blurring a single bright pixel draws the kernel itself." },
+    ],
+    formulas: [
+      { label: "1-D kernel", tex: String.raw`g(k)=\frac{e^{-k^2/2\sigma^2}}{\sum_j e^{-j^2/2\sigma^2}},\qquad |k|\le r=\lceil 3\sigma\rceil` },
+      { label: "Separable", tex: String.raw`G(x,y)=g(x)\,g(y)` },
+      { label: "Two passes", tex: String.raw`T=I\ast g_{\text{rows}},\qquad O=T\ast g_{\text{columns}}`, note: "edges repeat the border pixel" },
+      { label: "Cost per pixel", tex: String.raw`2(2r+1)\ \ \text{vs.}\ \ (2r+1)^2` },
+    ],
+    tryThis: [
+      "Pick single spike, turn on Fit height, and jump to the last step: that bell is g(x)·g(y).",
+      "Set σ to 3: the two hills merge into one.",
+      "Drag the 3-D view to look along a row while pass 1 runs.",
+    ],
   },
   params: [
     { key: "image", label: "Image", options: ["noisy hills", "single spike", "checkerboard"], default: "noisy hills", input: true },

@@ -67,6 +67,19 @@ for (const id of Object.keys(algorithms)) {
       }
     });
 
+    test("explanation: lead, key ideas, try this, and typeset formulas", async ({ page }) => {
+      await open(page, id);
+      const { meta, explain } = algorithms[id];
+      await expect(page.getByText(meta.lead)).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Key ideas" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Try this" })).toBeVisible();
+      await expect(page.locator(".katex-display")).toHaveCount(explain.formulas?.length ?? 0);
+      // No formula may need sideways scrolling: split multi-part formulas into stacked lines instead.
+      const clipped = await page.locator("#the-math ~ dl dd:has(.katex-display)").evaluateAll(els =>
+        els.filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.parentElement!.querySelector("dt")!.textContent));
+      expect(clipped).toEqual([]);
+    });
+
     test("no horizontal scroll", async ({ page }) => {
       await open(page, id);
       await page.waitForTimeout(300); // let canvases size themselves
