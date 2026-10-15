@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+/* Light/dark follow the system setting. Canvas and 3-D views read the same tokens at runtime. */
+:root {
+  --background: #f6f5f0;
+  --foreground: #1b1b1d;
+  --card: #ffffff;
+  --muted-foreground: #6b6a66;
+  --border: #e2dfd6;
+  --accent: #0f766e;
+  --pending: #e7e3d8;     /* not computed yet */
+  --kernel: #e8a33d;      /* cells being read */
+  --cursor: #d9480f;      /* cells being written */
+  --highlight: #fff1d6;   /* current pseudocode line */
+  --dots: #dcd8cc;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #111113;
+    --foreground: #ececee;
+    --card: #19191c;
+    --muted-foreground: #9a9aa3;
+    --border: #2b2b31;
+    --accent: #2dd4bf;
+    --pending: #26262b;
+    --kernel: #f0b54f;
+    --cursor: #ff7a45;
+    --highlight: #3a2f1a;
+    --dots: #232328;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-kernel: var(--kernel);
+  --color-cursor: var(--cursor);
+  --color-pending: var(--pending);
+  --color-highlight: var(--highlight);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+body {
+  background-color: var(--background);
+  /* faint dot grid: a nod to pixels */
+  background-image: radial-gradient(var(--dots) 1px, transparent 1px);
+  background-size: 22px 22px;
+  color: var(--foreground);
+}
+
+canvas.pixels { image-rendering: pixelated; }

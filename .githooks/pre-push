@@ -1,0 +1,7 @@
+#!/bin/sh
+# Block pushes that would ship red. See "Git: when to commit and push" in CLAUDE.md.
+set -e
+echo "pre-push: unit tests"
+npm test --silent
+echo "pre-push: build + browser smoke tests"
+npm run test:e2e --silent
