@@ -9,6 +9,8 @@ VisuAlgo-style step-through visualizations of CV algorithms. Idea and scope: `do
 - `npm run build` — static export to `out/`.
 
 ## Adding an algorithm page
+Build the next unbuilt page in `topics` order (`lib/algos/index.ts`); the MVP is the first four groups
+(table in `docs/ideas/visucv.md`).
 1. `lib/algos/<id>.ts` implementing `Algorithm` (`lib/algos/types.ts`).
 2. Register it in `lib/algos/index.ts` (both `algorithms` and its `topics` entry).
 3. `lib/algos/<id>.test.ts`: check `run()` against a brute-force or hand-checked answer, and that the last step equals `run()`.
@@ -21,7 +23,7 @@ The player, home-page card and e2e smoke tests pick the page up automatically.
 - Three.js only on pages where 3-D shows something 2-D can't; it's lazy-loaded.
 
 ## Git: when to commit and push
-Remote: `github.com/NamNguyen511/visucv` (private), branch `main`.
+Remote: `github.com/NamNguyen511/visucv` (public), branch `main`.
 
 **Push when a unit of work is finished and green**, where a unit is one of:
 - a new algorithm page (module + registry entry + tests),

@@ -30,8 +30,27 @@ nobody covers the CV curriculum VisuAlgo-style.
 - [ ] Deep-learning toys are feasible in plain JS — deferred, not promised.
 
 ## MVP Scope
-Topic map + five pages: morphology (done first), thresholding + Otsu, flood fill / connected
-components, convolution, bilinear interpolation (forward vs inverse mapping).
+The MVP follows the roadmap: its first four groups, which are the book's classical 2-D part
+(Ch. 3–15). Built in this order. The roadmap (`topics` in `lib/algos/index.ts`, shown on the
+home page) is the single source of order: change the order there first, then here.
+
+| # | Group | Page | Book | Status |
+|---|---|---|---|---|
+| 1 | Binary images | Thresholding & Otsu | Ch 3 | ✅ |
+| 2 | Binary images | Erosion, Dilation, Opening & Closing | Ch 3 | ✅ |
+| 3 | Binary images | Flood fill & Connected components | Ch 4 | ✅ |
+| 4 | Shape | Image moments & orientation | Ch 5–6 | next |
+| 5 | Shape | Distance transforms | Ch 7 | |
+| 6 | Geometry | Geometric transforms | Ch 8 | |
+| 7 | Geometry | Bilinear interpolation & inverse mapping | Ch 9 | |
+| 8 | Filtering | Convolution vs correlation | Ch 10 | |
+| 9 | Filtering | Gaussian smoothing as a height map | Ch 11 | ✅ |
+| 10 | Filtering | Edge detection (Sobel, Canny) | Ch 12–13 | |
+| 11 | Filtering | Median, min/max & bilateral filters | Ch 14 | |
+| 12 | Filtering | Fourier transform & frequency filtering | Ch 15 | |
+
+The MVP ends with the Filtering group. Features & motion, 3-D vision and Deep learning come after,
+in the same roadmap order.
 
 ## Not Doing (and Why)
 - Running user code / Pyodide — pseudocode chosen; saves ~10 MB and complexity.
@@ -39,6 +58,7 @@ components, convolution, bilinear interpolation (forward vs inverse mapping).
 - Deep-learning pages — prove the format on classical CV first.
 - Image upload / real photos — small grids are what make stepping readable.
 - Pipeline playground and challenge mode — later layers on top of `run()`.
+- Post-MVP groups (features, 3-D, deep learning) — until the 12 classical pages ship.
 
 ## Open Questions
 - Is the name free? Check GitHub `visucv` and .com/.dev/.io before publishing.
