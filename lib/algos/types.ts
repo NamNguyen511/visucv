@@ -1,7 +1,8 @@
 // The contract every algorithm page implements. The player only knows these types.
 
-/** Row-major image. Binary images use 0/1, gray images 0..1. NaN = "not computed yet". */
-export type Grid = { h: number; w: number; data: Float32Array };
+/** Row-major image. Binary images use 0/1, gray images 0..1. NaN = "not computed yet".
+ *  `labels`: a label image instead: 0 = background, -1 = foreground not labeled yet, k ≥ 1 = label k. */
+export type Grid = { h: number; w: number; data: Float32Array; labels?: boolean };
 export type Cell = [y: number, x: number];
 
 export type Param = { key: string; label: string; options: (string | number)[]; default: string | number };
@@ -56,4 +57,4 @@ export type Algorithm = {
 export const defaultParams = (a: Algorithm): Params => Object.fromEntries(a.params.map(p => [p.key, p.default]));
 
 export const grid = (h: number, w: number, fill = 0): Grid => ({ h, w, data: new Float32Array(h * w).fill(fill) });
-export const clone = (g: Grid): Grid => ({ h: g.h, w: g.w, data: g.data.slice() });
+export const clone = (g: Grid): Grid => ({ ...g, data: g.data.slice() });

@@ -16,6 +16,7 @@ The player, home-page card and e2e smoke tests pick the page up automatically.
 
 ## Conventions
 - Pixels draw as literal intensity: 0 = black, 1 = white, in every theme. NaN = "not computed yet".
+- Label images set `Grid.labels`: 0 = background, -1 = unlabeled foreground (white), k ≥ 1 = palette colour.
 - Grid tracks that hold canvases or truncated text use `minmax(0, 1fr)`, never a bare auto column.
 - Three.js only on pages where 3-D shows something 2-D can't; it's lazy-loaded.
 

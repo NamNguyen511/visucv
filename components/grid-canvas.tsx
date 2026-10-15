@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import type { Cell, Grid } from "@/lib/algos/types";
-import { pixelColor } from "@/lib/pixel";
+import { labelColor, pixelColor } from "@/lib/pixel";
 import { useThemeColors } from "./use-theme-colors";
 
 type Props = {
@@ -36,7 +36,7 @@ export function GridCanvas({ title, grid: g, read = [], write = [], onPaint }: P
     if (!ctx || !colors) return;
     for (let y = 0; y < g.h; y++)
       for (let x = 0; x < g.w; x++) {
-        ctx.fillStyle = pixelColor(g.data[y * g.w + x]) ?? colors.pending;
+        ctx.fillStyle = (g.labels ? labelColor : pixelColor)(g.data[y * g.w + x]) ?? colors.pending;
         ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
       }
     ctx.strokeStyle = "rgba(128, 128, 128, 0.3)"; // visible on both black and white pixels

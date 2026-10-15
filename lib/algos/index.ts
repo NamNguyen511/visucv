@@ -1,3 +1,4 @@
+import { components } from "./components";
 import { gaussian } from "./gaussian";
 import { morphology } from "./morphology";
 import { otsu } from "./otsu";
@@ -7,6 +8,7 @@ export const algorithms: Record<string, Algorithm> = {
   [morphology.meta.id]: morphology,
   [gaussian.meta.id]: gaussian,
   [otsu.meta.id]: otsu,
+  [components.meta.id]: components,
 };
 
 // Topic map. `id` set = page exists; no id = "coming soon".
@@ -14,7 +16,7 @@ export const topics: { name: string; items: { title: string; id?: string }[] }[]
   { name: "Binary images", items: [
     { title: "Thresholding & Otsu", id: "otsu" },
     { title: "Erosion, Dilation, Opening & Closing", id: "morphology" },
-    { title: "Flood fill & Connected components" },
+    { title: "Flood fill & Connected components", id: "components" },
   ]},
   { name: "Shape", items: [
     { title: "Image moments & orientation" },
