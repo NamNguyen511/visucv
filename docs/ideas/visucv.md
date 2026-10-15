@@ -39,8 +39,8 @@ home page) is the single source of order: change the order there first, then her
 | 1 | Binary images | Thresholding & Otsu | Ch 3 | ✅ |
 | 2 | Binary images | Erosion, Dilation, Opening & Closing | Ch 3 | ✅ |
 | 3 | Binary images | Flood fill & Connected components | Ch 4 | ✅ |
-| 4 | Shape | Image moments & orientation | Ch 5–6 | next |
-| 5 | Shape | Distance transforms | Ch 7 | |
+| 4 | Shape | Image moments & orientation | Ch 5–6 | ✅ |
+| 5 | Shape | Distance transforms | Ch 7 | next |
 | 6 | Geometry | Geometric transforms | Ch 8 | |
 | 7 | Geometry | Bilinear interpolation & inverse mapping | Ch 9 | |
 | 8 | Filtering | Convolution vs correlation | Ch 10 | |

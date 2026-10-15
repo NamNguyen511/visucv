@@ -76,7 +76,8 @@ export function Player({ id }: { id: string }) {
   const setParam = (key: string, value: string | number) => {
     const next = { ...params, [key]: value };
     setParams(next);
-    if (!algo.paintable) setInput(algo.sampleInput(next)); // painted inputs survive param changes
+    // Only params that define the sample image replace it; others keep any painting.
+    if (algo.params.find(p => p.key === key)?.input) setInput(algo.sampleInput(next));
   };
 
   const paint = (k: number, v: number) => {
@@ -122,6 +123,7 @@ export function Player({ id }: { id: string }) {
               grid={g}
               read={k === f.src ? f.read : undefined}
               write={k === f.dst ? f.write : undefined}
+              shapes={k === f.dst ? f.shapes : undefined}
               onPaint={algo.paintable && k === 0 ? paint : undefined}
             />
           ))}

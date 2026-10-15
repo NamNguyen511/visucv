@@ -9,12 +9,12 @@ import { GridCanvas } from "./grid-canvas";
 /** A live page as a card: its own sample input → output, drawn by its own run(). */
 export function AlgoCard({ id }: { id: string }) {
   const algo = algorithms[id];
-  const { input, output, steps } = useMemo(() => {
+  const { input, output, shapes, steps } = useMemo(() => {
     const p = defaultParams(algo);
     const input = algo.sampleInput(p);
-    let steps = 0;
-    for (const _ of algo.steps(input, p)) steps++;
-    return { input, output: algo.run(input, p), steps };
+    let steps = 0, last;
+    for (const s of algo.steps(input, p)) { steps++; last = s; }
+    return { input, output: algo.run(input, p), shapes: last?.shapes, steps };
   }, [algo]);
 
   return (
@@ -25,7 +25,7 @@ export function AlgoCard({ id }: { id: string }) {
       <div className="pointer-events-none grid grid-cols-[1fr_auto_1fr] items-center gap-2">
         <GridCanvas title="input" grid={input} />
         <ArrowRight className="mt-4 size-4 text-muted-foreground" />
-        <GridCanvas title="output" grid={output} />
+        <GridCanvas title="output" grid={output} shapes={shapes} />
       </div>
       <p className="mt-4 font-mono text-[11px] uppercase tracking-widest text-accent">{algo.meta.topic}</p>
       <h3 className="mt-1 text-lg font-semibold leading-snug">{algo.meta.title}</h3>

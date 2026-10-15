@@ -5,7 +5,11 @@
 export type Grid = { h: number; w: number; data: Float32Array; labels?: boolean };
 export type Cell = [y: number, x: number];
 
-export type Param = { key: string; label: string; options: (string | number)[]; default: string | number };
+export type Param = {
+  key: string; label: string; options: (string | number)[]; default: string | number;
+  /** Changes the sample image: the player regenerates the input (discarding any painting). */
+  input?: boolean;
+};
 export type Params = Record<string, string | number>;
 
 export type Step = {
@@ -25,7 +29,16 @@ export type Step = {
   surface?: Grid;
   /** Optional chart: bars (e.g. a histogram) with a line over them, on a shared x axis. */
   plot?: Plot;
+  /** Vector overlays drawn on the `dst` panel. */
+  shapes?: Shape[];
 };
+
+/** Overlay in pixel coordinates: x = column, y = row, (x, y) = that pixel's centre. */
+export type Shape =
+  | { kind: "point"; x: number; y: number }
+  | { kind: "line"; x1: number; y1: number; x2: number; y2: number; thick?: boolean }
+  /** theta: radians from +x toward +y (clockwise on screen, since y points down). */
+  | { kind: "ellipse"; cx: number; cy: number; a: number; b: number; theta: number };
 
 export type Plot = {
   bars: number[];

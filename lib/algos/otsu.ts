@@ -65,8 +65,8 @@ export const otsu: Algorithm = {
       "with three, or when one class is tiny.",
   },
   params: [
-    { key: "image", label: "Image", options: ["two peaks", "small object", "three peaks"], default: "two peaks" },
-    { key: "noise", label: "Noise σ", options: [8, 20, 35], default: 20 },
+    { key: "image", label: "Image", options: ["two peaks", "small object", "three peaks"], default: "two peaks", input: true },
+    { key: "noise", label: "Noise σ", options: [8, 20, 35], default: 20, input: true },
   ],
   pseudocode: [
     "OTSU(I):",

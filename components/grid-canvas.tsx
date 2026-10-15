@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import type { Cell, Grid } from "@/lib/algos/types";
+import type { Cell, Grid, Shape } from "@/lib/algos/types";
 import { labelColor, pixelColor } from "@/lib/pixel";
 import { useThemeColors } from "./use-theme-colors";
 
@@ -11,9 +11,10 @@ type Props = {
   write?: Cell[];
   /** Enables painting: called with the cell index and the value to set. */
   onPaint?: (k: number, value: number) => void;
+  shapes?: Shape[];
 };
 
-export function GridCanvas({ title, grid: g, read = [], write = [], onPaint }: Props) {
+export function GridCanvas({ title, grid: g, read = [], write = [], onPaint, shapes = [] }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const colors = useThemeColors();
   const paintValue = useRef<number | null>(null);
@@ -52,7 +53,28 @@ export function GridCanvas({ title, grid: g, read = [], write = [], onPaint }: P
     ctx.strokeStyle = colors.cursor;
     ctx.lineWidth = 3;
     for (const [y, x] of write) ctx.strokeRect(x * CELL + 1.5, y * CELL + 1.5, CELL - 3, CELL - 3);
-  }, [g, read, write, colors, CELL]);
+
+    // Vector overlays, each with a dark halo so it reads on both black and white pixels.
+    const px = (v: number) => (v + 0.5) * CELL;
+    const stroke = (color: string, width: number) => {
+      ctx.lineWidth = width + 3; ctx.strokeStyle = "rgba(0, 0, 0, 0.55)"; ctx.stroke();
+      ctx.lineWidth = width; ctx.strokeStyle = color; ctx.stroke();
+    };
+    const lw = Math.max(1.5, CELL / 6);
+    for (const s of shapes) {
+      ctx.beginPath();
+      if (s.kind === "line") {
+        ctx.moveTo(px(s.x1), px(s.y1)); ctx.lineTo(px(s.x2), px(s.y2));
+        stroke(s.thick ? colors.cursor : colors.kernel, s.thick ? lw * 1.4 : lw);
+      } else if (s.kind === "ellipse") {
+        ctx.ellipse(px(s.cx), px(s.cy), Math.max(s.a * CELL, 0.5), Math.max(s.b * CELL, 0.5), s.theta, 0, 2 * Math.PI);
+        stroke(colors.accent, lw);
+      } else {
+        ctx.arc(px(s.x), px(s.y), Math.max(3, CELL / 3), 0, 2 * Math.PI);
+        ctx.fillStyle = colors.cursor; ctx.fill(); stroke("#ffffff", 1.5);
+      }
+    }
+  }, [g, read, write, shapes, colors, CELL]);
 
   const cellAt = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const r = e.currentTarget.getBoundingClientRect();

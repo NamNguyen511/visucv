@@ -1,5 +1,6 @@
 import { components } from "./components";
 import { gaussian } from "./gaussian";
+import { momentsAlgo } from "./moments";
 import { morphology } from "./morphology";
 import { otsu } from "./otsu";
 import type { Algorithm } from "./types";
@@ -9,6 +10,7 @@ export const algorithms: Record<string, Algorithm> = {
   [gaussian.meta.id]: gaussian,
   [otsu.meta.id]: otsu,
   [components.meta.id]: components,
+  [momentsAlgo.meta.id]: momentsAlgo,
 };
 
 // Topic map. `id` set = page exists; no id = "coming soon".
@@ -19,7 +21,7 @@ export const topics: { name: string; items: { title: string; id?: string }[] }[]
     { title: "Flood fill & Connected components", id: "components" },
   ]},
   { name: "Shape", items: [
-    { title: "Image moments & orientation" },
+    { title: "Image moments & orientation", id: "moments" },
     { title: "Distance transforms" },
   ]},
   { name: "Geometry", items: [

@@ -52,6 +52,21 @@ for (const id of Object.keys(algorithms)) {
       expect(errors).toEqual([]);
     });
 
+    // Regression: picking a different shape on a paintable page used to keep the old image.
+    test("every image param changes the input panel", async ({ page }) => {
+      await open(page, id);
+      const input = page.locator("section[aria-label=Demo] canvas.pixels").first();
+      const snap = () => input.evaluate(c => (c as HTMLCanvasElement).toDataURL());
+      const params = algorithms[id].params;
+      for (const [i, p] of params.entries()) {
+        if (!p.input) continue;
+        const before = await snap();
+        const other = p.options.find(o => o !== p.default)!;
+        await page.locator("section[aria-label=Demo] select").nth(i).selectOption(String(other));
+        await expect.poll(snap, { message: `${p.key} → ${other}` }).not.toBe(before);
+      }
+    });
+
     test("no horizontal scroll", async ({ page }) => {
       await open(page, id);
       await page.waitForTimeout(300); // let canvases size themselves

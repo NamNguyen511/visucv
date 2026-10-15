@@ -51,7 +51,7 @@ export const gaussian: Algorithm = {
       "Try the single spike with “fit height” on: what comes out is the kernel itself.",
   },
   params: [
-    { key: "image", label: "Image", options: ["noisy hills", "single spike", "checkerboard"], default: "noisy hills" },
+    { key: "image", label: "Image", options: ["noisy hills", "single spike", "checkerboard"], default: "noisy hills", input: true },
     { key: "sigma", label: "σ", options: [0.5, 1, 2, 3], default: 1 },
   ],
   pseudocode: [

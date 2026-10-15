@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 
-const KEYS = ["pending", "kernel", "cursor"] as const;
+const KEYS = ["pending", "kernel", "cursor", "accent"] as const;
 export type ThemeColors = Record<(typeof KEYS)[number], string>;
 
 const read = (): ThemeColors => {
