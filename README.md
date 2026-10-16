@@ -26,6 +26,7 @@ learning alongside it.
 | Gaussian Smoothing as a Height Map | Ch. 11 |
 | Edge Detection: Sobel & Canny | Ch. 12 |
 | Median, Min/Max & Bilateral Filters | Ch. 14 |
+| Fourier Transform & Frequency Filtering | Ch. 15 |
 
 More are on the roadmap (see the home page).
 

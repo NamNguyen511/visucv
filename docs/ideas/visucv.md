@@ -47,7 +47,7 @@ home page) is the single source of order: change the order there first, then her
 | 9 | Filtering | Gaussian smoothing as a height map | Ch 11 | ✅ |
 | 10 | Filtering | Edge detection (Sobel, Canny) | Ch 12 | ✅ |
 | 11 | Filtering | Median, min/max & bilateral filters | Ch 14 | ✅ |
-| 12 | Filtering | Fourier transform & frequency filtering | Ch 15 | next |
+| 12 | Filtering | Fourier transform & frequency filtering | Ch 15 | ✅ |
 
 The MVP ends with the Filtering group. Features & motion, 3-D vision and Deep learning come after,
 in the same roadmap order.

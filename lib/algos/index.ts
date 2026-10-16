@@ -2,6 +2,7 @@ import { components } from "./components";
 import { convolution } from "./convolution";
 import { distance } from "./distance";
 import { edges } from "./edges";
+import { fourier } from "./fourier";
 import { gaussian } from "./gaussian";
 import { momentsAlgo } from "./moments";
 import { morphology } from "./morphology";
@@ -23,6 +24,7 @@ export const algorithms: Record<string, Algorithm> = {
   [convolution.meta.id]: convolution,
   [edges.meta.id]: edges,
   [nonlinear.meta.id]: nonlinear,
+  [fourier.meta.id]: fourier,
 };
 
 // Topic map. `id` set = page exists; no id = "coming soon".
@@ -45,7 +47,7 @@ export const topics: { name: string; items: { title: string; id?: string }[] }[]
     { title: "Gaussian smoothing as a height map", id: "gaussian" },
     { title: "Edge detection (Sobel, Canny)", id: "edges" },
     { title: "Median, min/max & bilateral filters", id: "nonlinear" },
-    { title: "Fourier transform & frequency filtering" },
+    { title: "Fourier transform & frequency filtering", id: "fourier" },
   ]},
   { name: "Features & motion", items: [
     { title: "Harris corners" },
