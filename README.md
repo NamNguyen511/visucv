@@ -25,6 +25,7 @@ learning alongside it.
 | Convolution vs Correlation | Ch. 10 |
 | Gaussian Smoothing as a Height Map | Ch. 11 |
 | Edge Detection: Sobel & Canny | Ch. 12 |
+| Median, Min/Max & Bilateral Filters | Ch. 14 |
 
 More are on the roadmap (see the home page).
 

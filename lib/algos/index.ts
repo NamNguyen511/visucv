@@ -5,6 +5,7 @@ import { edges } from "./edges";
 import { gaussian } from "./gaussian";
 import { momentsAlgo } from "./moments";
 import { morphology } from "./morphology";
+import { nonlinear } from "./nonlinear";
 import { otsu } from "./otsu";
 import { transforms } from "./transforms";
 import { warping } from "./warping";
@@ -21,6 +22,7 @@ export const algorithms: Record<string, Algorithm> = {
   [warping.meta.id]: warping,
   [convolution.meta.id]: convolution,
   [edges.meta.id]: edges,
+  [nonlinear.meta.id]: nonlinear,
 };
 
 // Topic map. `id` set = page exists; no id = "coming soon".
@@ -42,7 +44,7 @@ export const topics: { name: string; items: { title: string; id?: string }[] }[]
     { title: "Convolution vs correlation", id: "convolution" },
     { title: "Gaussian smoothing as a height map", id: "gaussian" },
     { title: "Edge detection (Sobel, Canny)", id: "edges" },
-    { title: "Median, min/max & bilateral filters" },
+    { title: "Median, min/max & bilateral filters", id: "nonlinear" },
     { title: "Fourier transform & frequency filtering" },
   ]},
   { name: "Features & motion", items: [
