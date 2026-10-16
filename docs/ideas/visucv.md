@@ -45,8 +45,8 @@ home page) is the single source of order: change the order there first, then her
 | 7 | Geometry | Bilinear interpolation & inverse mapping | Ch 9 | ✅ |
 | 8 | Filtering | Convolution vs correlation | Ch 10 | ✅ |
 | 9 | Filtering | Gaussian smoothing as a height map | Ch 11 | ✅ |
-| 10 | Filtering | Edge detection (Sobel, Canny) | Ch 12–13 | next |
-| 11 | Filtering | Median, min/max & bilateral filters | Ch 14 | |
+| 10 | Filtering | Edge detection (Sobel, Canny) | Ch 12 | ✅ |
+| 11 | Filtering | Median, min/max & bilateral filters | Ch 14 | next |
 | 12 | Filtering | Fourier transform & frequency filtering | Ch 15 | |
 
 The MVP ends with the Filtering group. Features & motion, 3-D vision and Deep learning come after,
@@ -59,6 +59,7 @@ in the same roadmap order.
 - Image upload / real photos — small grids are what make stepping readable.
 - Pipeline playground and challenge mode — later layers on top of `run()`.
 - Post-MVP groups (features, 3-D, deep learning) — until the 12 classical pages ship.
+- Hough transform (§12.4) and Laplacian / LoG zero crossings (Ch. 13) — different algorithms from Canny; candidates for their own pages after the MVP.
 
 ## Open Questions
 - Is the name free? Check GitHub `visucv` and .com/.dev/.io before publishing.

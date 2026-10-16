@@ -1,6 +1,7 @@
 import { components } from "./components";
 import { convolution } from "./convolution";
 import { distance } from "./distance";
+import { edges } from "./edges";
 import { gaussian } from "./gaussian";
 import { momentsAlgo } from "./moments";
 import { morphology } from "./morphology";
@@ -19,6 +20,7 @@ export const algorithms: Record<string, Algorithm> = {
   [transforms.meta.id]: transforms,
   [warping.meta.id]: warping,
   [convolution.meta.id]: convolution,
+  [edges.meta.id]: edges,
 };
 
 // Topic map. `id` set = page exists; no id = "coming soon".
@@ -39,7 +41,7 @@ export const topics: { name: string; items: { title: string; id?: string }[] }[]
   { name: "Filtering", items: [
     { title: "Convolution vs correlation", id: "convolution" },
     { title: "Gaussian smoothing as a height map", id: "gaussian" },
-    { title: "Edge detection (Sobel, Canny)" },
+    { title: "Edge detection (Sobel, Canny)", id: "edges" },
     { title: "Median, min/max & bilateral filters" },
     { title: "Fourier transform & frequency filtering" },
   ]},

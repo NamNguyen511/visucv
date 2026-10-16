@@ -6,8 +6,8 @@ every step lights up beside it.
 
 Live pages: thresholding & Otsu, erosion / dilation / opening / closing, flood fill & connected
 components, image moments & orientation, distance transforms, geometric transforms, bilinear
-interpolation & inverse mapping, convolution vs correlation, and Gaussian smoothing as a 3-D
-height map. More on the roadmap (see the home page).
+interpolation & inverse mapping, convolution vs correlation, Sobel & Canny edge detection, and
+Gaussian smoothing as a 3-D height map. More on the roadmap (see the home page).
 
 ```bash
 npm install
