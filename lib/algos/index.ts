@@ -1,4 +1,5 @@
 import { components } from "./components";
+import { distance } from "./distance";
 import { gaussian } from "./gaussian";
 import { momentsAlgo } from "./moments";
 import { morphology } from "./morphology";
@@ -11,6 +12,7 @@ export const algorithms: Record<string, Algorithm> = {
   [otsu.meta.id]: otsu,
   [components.meta.id]: components,
   [momentsAlgo.meta.id]: momentsAlgo,
+  [distance.meta.id]: distance,
 };
 
 // Topic map. `id` set = page exists; no id = "coming soon".
@@ -22,7 +24,7 @@ export const topics: { name: string; items: { title: string; id?: string }[] }[]
   ]},
   { name: "Shape", items: [
     { title: "Image moments & orientation", id: "moments" },
-    { title: "Distance transforms" },
+    { title: "Distance transforms", id: "distance" },
   ]},
   { name: "Geometry", items: [
     { title: "Geometric transforms" },
