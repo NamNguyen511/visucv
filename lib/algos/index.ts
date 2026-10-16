@@ -4,6 +4,7 @@ import { gaussian } from "./gaussian";
 import { momentsAlgo } from "./moments";
 import { morphology } from "./morphology";
 import { otsu } from "./otsu";
+import { transforms } from "./transforms";
 import type { Algorithm } from "./types";
 
 export const algorithms: Record<string, Algorithm> = {
@@ -13,6 +14,7 @@ export const algorithms: Record<string, Algorithm> = {
   [components.meta.id]: components,
   [momentsAlgo.meta.id]: momentsAlgo,
   [distance.meta.id]: distance,
+  [transforms.meta.id]: transforms,
 };
 
 // Topic map. `id` set = page exists; no id = "coming soon".
@@ -27,7 +29,7 @@ export const topics: { name: string; items: { title: string; id?: string }[] }[]
     { title: "Distance transforms", id: "distance" },
   ]},
   { name: "Geometry", items: [
-    { title: "Geometric transforms" },
+    { title: "Geometric transforms", id: "transforms" },
     { title: "Bilinear interpolation & inverse mapping" },
   ]},
   { name: "Filtering", items: [

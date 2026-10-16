@@ -41,8 +41,8 @@ home page) is the single source of order: change the order there first, then her
 | 3 | Binary images | Flood fill & Connected components | Ch 4 | ✅ |
 | 4 | Shape | Image moments & orientation | Ch 5–6 | ✅ |
 | 5 | Shape | Distance transforms | Ch 7 | ✅ |
-| 6 | Geometry | Geometric transforms | Ch 8 | next |
-| 7 | Geometry | Bilinear interpolation & inverse mapping | Ch 9 | |
+| 6 | Geometry | Geometric transforms | Ch 8 | ✅ |
+| 7 | Geometry | Bilinear interpolation & inverse mapping | Ch 9 | next |
 | 8 | Filtering | Convolution vs correlation | Ch 10 | |
 | 9 | Filtering | Gaussian smoothing as a height map | Ch 11 | ✅ |
 | 10 | Filtering | Edge detection (Sobel, Canny) | Ch 12–13 | |
