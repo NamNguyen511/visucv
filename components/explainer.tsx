@@ -32,7 +32,7 @@ export function Explainer({ explain }: { explain: Algorithm["explain"] }) {
               <div key={f.label} className="py-3 first:pt-0 last:pb-0">
                 <dt className="text-sm font-semibold">{f.label}</dt>
                 <dd
-                  className="overflow-x-auto overflow-y-hidden py-1 text-[0.95rem]"
+                  className="overflow-x-auto overflow-y-hidden py-1 text-[0.8rem] sm:text-[0.95rem]"
                   dangerouslySetInnerHTML={{ __html: katex.renderToString(f.tex, { displayMode: true, throwOnError: true }) }}
                 />
                 {f.note && <dd className="text-sm text-muted-foreground">{f.note}</dd>}

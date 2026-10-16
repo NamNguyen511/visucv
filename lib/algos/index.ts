@@ -1,4 +1,5 @@
 import { components } from "./components";
+import { convolution } from "./convolution";
 import { distance } from "./distance";
 import { gaussian } from "./gaussian";
 import { momentsAlgo } from "./moments";
@@ -17,6 +18,7 @@ export const algorithms: Record<string, Algorithm> = {
   [distance.meta.id]: distance,
   [transforms.meta.id]: transforms,
   [warping.meta.id]: warping,
+  [convolution.meta.id]: convolution,
 };
 
 // Topic map. `id` set = page exists; no id = "coming soon".
@@ -35,7 +37,7 @@ export const topics: { name: string; items: { title: string; id?: string }[] }[]
     { title: "Bilinear interpolation & inverse mapping", id: "warping" },
   ]},
   { name: "Filtering", items: [
-    { title: "Convolution vs correlation" },
+    { title: "Convolution vs correlation", id: "convolution" },
     { title: "Gaussian smoothing as a height map", id: "gaussian" },
     { title: "Edge detection (Sobel, Canny)" },
     { title: "Median, min/max & bilateral filters" },
