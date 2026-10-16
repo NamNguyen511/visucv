@@ -123,7 +123,7 @@ export function Player({ id }: { id: string }) {
               grid={g}
               read={k === f.src ? f.read : undefined}
               write={k === f.dst ? f.write : undefined}
-              shapes={k === f.dst ? f.shapes : undefined}
+              shapes={f.shapes?.filter(s => (s.panel ?? f.dst) === k)}
               onPaint={algo.paintable && k === 0 ? paint : undefined}
             />
           ))}
@@ -165,7 +165,7 @@ export function Player({ id }: { id: string }) {
         <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span><i className="mr-1 inline-block size-2.5 rounded-sm bg-kernel align-[-1px]" />cells being read</span>
           <span><i className="mr-1 inline-block size-2.5 rounded-sm bg-cursor align-[-1px]" />cells being written</span>
-          <span><i className="mr-1 inline-block size-2.5 rounded-sm bg-pending align-[-1px]" />not computed yet</span>
+          <span><i className="mr-1 inline-block size-2.5 rounded-sm bg-pending align-[-1px]" style={{ backgroundImage: "linear-gradient(to top right, transparent 42%, rgba(110,100,80,.55) 42% 58%, transparent 58%)" }} />not computed yet</span>
         </div>
         <p className="mt-2 text-xs text-muted-foreground">
           {algo.paintable && <>Click or drag on <b>{titles[0]}</b> to paint pixels. </>}

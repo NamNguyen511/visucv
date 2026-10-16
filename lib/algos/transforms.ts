@@ -4,7 +4,7 @@
 import { type Algorithm, type Grid, type Shape, type Step, grid } from "./types";
 
 export type Mat = [number, number, number, number]; // [a, b, c, d] = [[a, b], [c, d]]
-const R = (deg: number, s = 1): Mat => {
+export const R = (deg: number, s = 1): Mat => {
   const t = (deg * Math.PI) / 180, a = s * Math.cos(t), b = s * Math.sin(t);
   return [a, b, -b, a];
 };
@@ -37,7 +37,7 @@ export function forward(I: Grid, A: Mat, x: number, y: number): [number, number]
 }
 
 /** Inverse of forward(): which source position lands on (x', y'). */
-function inverse(I: Grid, A: Mat, x: number, y: number): [number, number] {
+export function inverse(I: Grid, A: Mat, x: number, y: number): [number, number] {
   const [cx, cy] = centre(I), [a, b, c, d] = A, D = det(A), dx = x - cx, dy = y - cy;
   return [(d * dx - b * dy) / D + cx, (-c * dx + a * dy) / D + cy];
 }

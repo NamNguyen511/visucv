@@ -1,7 +1,7 @@
 "use client";
 // Home-page hero: the real morphology engine on a loop, not a recording.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { algorithms } from "@/lib/algos";
+import { morphology } from "@/lib/algos/morphology";
 import { defaultParams } from "@/lib/algos/types";
 import { stepsDue } from "@/lib/playback";
 import { GridCanvas } from "./grid-canvas";
@@ -9,7 +9,7 @@ import { GridCanvas } from "./grid-canvas";
 const SPEED = 120; // steps/s
 
 export function HeroDemo() {
-  const algo = algorithms.morphology;
+  const algo = morphology;
   const { frames, titles } = useMemo(() => {
     const p = defaultParams(algo);
     return { frames: [...algo.steps(algo.sampleInput(p), p)], titles: algo.panelTitles(p) };

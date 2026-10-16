@@ -5,6 +5,7 @@ import { momentsAlgo } from "./moments";
 import { morphology } from "./morphology";
 import { otsu } from "./otsu";
 import { transforms } from "./transforms";
+import { warping } from "./warping";
 import type { Algorithm } from "./types";
 
 export const algorithms: Record<string, Algorithm> = {
@@ -15,6 +16,7 @@ export const algorithms: Record<string, Algorithm> = {
   [momentsAlgo.meta.id]: momentsAlgo,
   [distance.meta.id]: distance,
   [transforms.meta.id]: transforms,
+  [warping.meta.id]: warping,
 };
 
 // Topic map. `id` set = page exists; no id = "coming soon".
@@ -30,7 +32,7 @@ export const topics: { name: string; items: { title: string; id?: string }[] }[]
   ]},
   { name: "Geometry", items: [
     { title: "Geometric transforms", id: "transforms" },
-    { title: "Bilinear interpolation & inverse mapping" },
+    { title: "Bilinear interpolation & inverse mapping", id: "warping" },
   ]},
   { name: "Filtering", items: [
     { title: "Convolution vs correlation" },

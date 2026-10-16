@@ -5,8 +5,8 @@ algorithm on a small image; you step, play or scrub through it while the pseudoc
 every step lights up beside it.
 
 Live pages: thresholding & Otsu, erosion / dilation / opening / closing, flood fill & connected
-components, image moments & orientation, distance transforms, geometric transforms, and Gaussian
-smoothing as a 3-D height map. More on the roadmap (see the home page).
+components, image moments & orientation, distance transforms, geometric transforms, bilinear
+interpolation & inverse mapping, and Gaussian smoothing as a 3-D height map. More on the roadmap (see the home page).
 
 ```bash
 npm install

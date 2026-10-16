@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { AlgoCard } from "@/components/algo-card";
 import { HeroDemo } from "@/components/hero-demo";
 import { topics } from "@/lib/algos";
+import { cardData } from "@/lib/algos/card";
 
 export default function Home() {
   const items = topics.flatMap(t => t.items);
@@ -34,7 +35,7 @@ export default function Home() {
       <section className="mt-10">
         <h2 className="mb-4 text-2xl font-bold tracking-tight">Live now</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {live.map(id => <AlgoCard key={id} id={id} />)}
+          {live.map(id => <AlgoCard key={id} card={cardData(id)} />)}
         </div>
       </section>
 

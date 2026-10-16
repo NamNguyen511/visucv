@@ -2,20 +2,14 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { algorithms } from "@/lib/algos";
-import { defaultParams } from "@/lib/algos/types";
+import { type CardData, toGrid } from "@/lib/algos/card";
 import { GridCanvas } from "./grid-canvas";
 
-/** A live page as a card: its own sample input → output, drawn by its own run(). */
-export function AlgoCard({ id }: { id: string }) {
-  const algo = algorithms[id];
-  const { input, output, shapes, steps } = useMemo(() => {
-    const p = defaultParams(algo);
-    const input = algo.sampleInput(p);
-    let steps = 0, last;
-    for (const s of algo.steps(input, p)) { steps++; last = s; }
-    return { input, output: algo.run(input, p), shapes: last?.shapes, steps };
-  }, [algo]);
+/** A live page as a card: its sample input → output and final overlays, precomputed at build time. */
+export function AlgoCard({ card }: { card: CardData }) {
+  const { id, steps, shapes } = card;
+  const input = useMemo(() => toGrid(card.input), [card.input]);
+  const output = useMemo(() => toGrid(card.output), [card.output]);
 
   return (
     <Link
@@ -27,9 +21,9 @@ export function AlgoCard({ id }: { id: string }) {
         <ArrowRight className="mt-4 size-4 text-muted-foreground" />
         <GridCanvas title="output" grid={output} shapes={shapes} />
       </div>
-      <p className="mt-4 font-mono text-[11px] uppercase tracking-widest text-accent">{algo.meta.topic}</p>
-      <h3 className="mt-1 text-lg font-semibold leading-snug">{algo.meta.title}</h3>
-      <p className="mt-1 text-sm text-muted-foreground">{algo.meta.ref}</p>
+      <p className="mt-4 font-mono text-[11px] uppercase tracking-widest text-accent">{card.topic}</p>
+      <h3 className="mt-1 text-lg font-semibold leading-snug">{card.title}</h3>
+      <p className="mt-1 text-sm text-muted-foreground">{card.ref}</p>
       <p className="mt-auto flex items-center justify-between pt-3 font-mono text-xs text-muted-foreground">
         {steps} steps
         <span className="text-accent transition group-hover:translate-x-0.5">Open →</span>

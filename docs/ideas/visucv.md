@@ -42,8 +42,8 @@ home page) is the single source of order: change the order there first, then her
 | 4 | Shape | Image moments & orientation | Ch 5–6 | ✅ |
 | 5 | Shape | Distance transforms | Ch 7 | ✅ |
 | 6 | Geometry | Geometric transforms | Ch 8 | ✅ |
-| 7 | Geometry | Bilinear interpolation & inverse mapping | Ch 9 | next |
-| 8 | Filtering | Convolution vs correlation | Ch 10 | |
+| 7 | Geometry | Bilinear interpolation & inverse mapping | Ch 9 | ✅ |
+| 8 | Filtering | Convolution vs correlation | Ch 10 | next |
 | 9 | Filtering | Gaussian smoothing as a height map | Ch 11 | ✅ |
 | 10 | Filtering | Edge detection (Sobel, Canny) | Ch 12–13 | |
 | 11 | Filtering | Median, min/max & bilateral filters | Ch 14 | |

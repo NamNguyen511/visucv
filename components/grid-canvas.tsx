@@ -35,11 +35,18 @@ export function GridCanvas({ title, grid: g, read = [], write = [], onPaint, sha
   useEffect(() => {
     const ctx = ref.current?.getContext("2d");
     if (!ctx || !colors) return;
+    // "Not computed yet" cells get a diagonal hatch: a flat pale fill was indistinguishable from white pixels.
+    const hatch = new Path2D();
     for (let y = 0; y < g.h; y++)
       for (let x = 0; x < g.w; x++) {
-        ctx.fillStyle = (g.labels ? labelColor : pixelColor)(g.data[y * g.w + x]) ?? colors.pending;
+        const c = (g.labels ? labelColor : pixelColor)(g.data[y * g.w + x]);
+        ctx.fillStyle = c ?? colors.pending;
         ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
+        if (!c) { hatch.moveTo(x * CELL, (y + 1) * CELL); hatch.lineTo((x + 1) * CELL, y * CELL); }
       }
+    ctx.strokeStyle = "rgba(110, 100, 80, 0.55)";
+    ctx.lineWidth = Math.max(1, CELL / 8);
+    ctx.stroke(hatch);
     ctx.strokeStyle = "rgba(128, 128, 128, 0.3)"; // visible on both black and white pixels
     ctx.lineWidth = 1;
     ctx.beginPath();

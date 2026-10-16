@@ -24,7 +24,8 @@ The player, home-page card and e2e smoke tests pick the page up automatically.
 - Pixels draw as literal intensity: 0 = black, 1 = white, in every theme. NaN = "not computed yet".
 - Label images set `Grid.labels`: 0 = background, -1 = unlabeled foreground (white), k ≥ 1 = palette colour.
 - A param that changes the sample image sets `input: true`; the player regenerates the input only for those.
-- Vector overlays (points, lines, ellipses) go in `Step.shapes`, drawn on the `dst` panel.
+- Vector overlays (points, lines, ellipses) go in `Step.shapes`, drawn on the `dst` panel unless `panel` is set.
+- Home cards are computed at build time (`lib/algos/card.ts`); never run algorithms in the browser just to render the home page.
 - Grid tracks that hold canvases or truncated text use `minmax(0, 1fr)`, never a bare auto column.
 - Three.js only on pages where 3-D shows something 2-D can't; it's lazy-loaded.
 
