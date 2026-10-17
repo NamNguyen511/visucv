@@ -88,6 +88,11 @@ export const convolution: Algorithm = {
     "        O[y, x] = (K2 * window(I, y, x)).sum()",
   ],
   paintable: true,
+  challenge: {
+    prompt: "Shift the F exactly one pixel to the right.",
+    hint: "A kernel with a single 1 copies one neighbour. Convolution flips the kernel; correlation doesn't.",
+    solved: p => p.kernel === "one-hot (asymmetric)" && p.mode === "convolution",
+  },
 
   panelTitles: ({ kernel }) => ["I", signed(KERNELS[kernel as string]) ? "O  (mid-gray = 0)" : "O"],
 

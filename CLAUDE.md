@@ -27,6 +27,8 @@ The player, home-page card and e2e smoke tests pick the page up automatically.
 - Vector overlays (points, lines, ellipses) go in `Step.shapes`, drawn on the `dst` panel unless `panel` is set.
 - Pseudocode is Python-style (`def`, `for p in pixels(I):`, `# comments`), one line per step `line` index;
   aim for ≤ 44 characters so lines rarely wrap on phones (long ones wrap under their own code).
+- A page may set `challenge` (prompt, hint, pure `solved(p, out, input)`): it must be unsolved by the defaults;
+  add its solving settings and near misses to `lib/algos/challenge.test.ts`.
 - Window-based pages fill `Step.window` (values under the kernel, "" outside it) for the "Inside the kernel" box.
 - Home cards (path stops, outcome pairs) are computed at build time (`lib/algos/card.ts`). Only the hero runs
   algorithms in the browser, and only the four modules its chips import (not the whole registry).

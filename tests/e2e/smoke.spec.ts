@@ -132,6 +132,22 @@ test.describe("home", () => {
     await expect(page.getByRole("link", { name: /^Continue/ })).toHaveAttribute("href", "/algo/distance");
   });
 
+  test("each try-it challenge can be solved through the controls", async ({ page }) => {
+    const plans: Record<string, [string, string][]> = {
+      morphology: [["Operation", "open"]],
+      components: [["Run", "label all blobs"], ["Connectivity", "8"]],
+      convolution: [["Kernel", "one-hot (asymmetric)"]],
+      nonlinear: [["Image", "noisy step edge"], ["Filter", "bilateral"], ["Window", "5×5"]],
+    };
+    for (const [id, steps] of Object.entries(plans)) {
+      await page.goto(`/algo/${id}`);
+      await expect(page.getByText("Try it:"), id).toBeVisible();
+      for (const [label, value] of steps)
+        await page.locator("section[aria-label=Demo] label").filter({ hasText: label }).first().locator("select").selectOption(value);
+      await expect(page.getByText("Solved!"), id).toBeVisible();
+    }
+  });
+
   test("reduced motion shows a still, finished demo", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");

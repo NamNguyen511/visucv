@@ -105,6 +105,11 @@ export const nonlinear: Algorithm = {
     "        out[p] = (w * N).sum() / w.sum()",
   ],
   paintable: true,
+  challenge: {
+    prompt: "On the noisy step edge, bring the error below 4.5 gray levels (the Gaussian manages 7.9).",
+    hint: "The median keeps edges but leaves some noise. Which filter averages only similar neighbours, and how wide?",
+    solved: (p, out) => p.image === "noisy step edge" && mae(out, cleanImage("noisy step edge")) < 4.5,
+  },
 
   panelTitles: p => ["I", `${String(p.filter).split(" ")[0]} ${p.window}`, `Gaussian σ = ${sigmaS(p)} (linear)`],
 

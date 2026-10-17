@@ -2,7 +2,7 @@
 // Generic step-through player: drives any Algorithm (lib/algos/types.ts).
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { ChevronLeft, ChevronRight, Pause, Play, RotateCcw, SkipBack, SkipForward } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, SkipBack, SkipForward, Target } from "lucide-react";
 import { algorithms } from "@/lib/algos";
 import { type Params, clone, defaultParams } from "@/lib/algos/types";
 import { stepsDue } from "@/lib/playback";
@@ -97,6 +97,7 @@ export function Player({ id }: { id: string }) {
   };
 
   const titles = algo.panelTitles(params);
+  const solved = useMemo(() => !!algo.challenge?.solved(params, algo.run(input, params), input), [algo, params, input]);
 
   return (
     <div className="mt-6 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -180,6 +181,22 @@ export function Player({ id }: { id: string }) {
           <span><i className="mr-1 inline-block size-2.5 rounded-sm bg-cursor align-[-1px]" />cells being written</span>
           <span><i className="mr-1 inline-block size-2.5 rounded-sm bg-pending align-[-1px]" style={{ backgroundImage: "linear-gradient(to top right, transparent 42%, rgba(110,100,80,.55) 42% 58%, transparent 58%)" }} />not computed yet</span>
         </div>
+        {algo.challenge && (
+          // Re-keyed on solving, so the pulse plays once each time it flips to solved.
+          <div key={String(solved)} className={`mt-4 rounded-xl border p-3 text-sm ${solved ? "border-accent bg-highlight motion-safe:animate-[solved_700ms_ease-out]" : "border-dashed border-border"}`}>
+            <p className="flex items-start gap-2">
+              {solved ? <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-accent" /> : <Target aria-hidden className="mt-0.5 size-4 shrink-0 text-muted-foreground" />}
+              <span><b className="font-semibold">{solved ? "Solved! " : "Try it: "}</b>{algo.challenge.prompt}</span>
+            </p>
+            {!solved && (
+              <details className="mt-1.5 pl-6 text-muted-foreground">
+                <summary className="cursor-pointer select-none">Hint</summary>
+                <p className="mt-1">{algo.challenge.hint}</p>
+              </details>
+            )}
+          </div>
+        )}
+
         <p className="mt-2 text-xs text-muted-foreground">
           {algo.paintable && <>Click or drag on <b>{titles[0]}</b> to paint pixels. </>}
           {algo.view3d && <>Drag the 3-D view to orbit, scroll to zoom. </>}

@@ -107,6 +107,11 @@ export const components: Algorithm = {
     "    return label",
   ],
   paintable: true,
+  challenge: {
+    prompt: "Label every blob, so that the diagonal staircase counts as one single blob.",
+    hint: "Its steps touch only at their corners. Which neighbours count as touching?",
+    solved: p => p.op === "label all blobs" && +p.conn === 8,
+  },
 
   panelTitles: ({ op }) => (op === "flood fill" ? ["A", `filled from seed ${fmtCell(SEED)}`] : ["A", "labels"]),
 

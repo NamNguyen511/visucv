@@ -75,6 +75,8 @@ export type Algorithm = {
   paintable?: boolean;
   /** Show the 3-D height-map view of `step.surface`. */
   view3d?: boolean;
+  /** "Try it": a goal checked against the real output (pure, unit-tested). Not solved by the defaults. */
+  challenge?: { prompt: string; hint: string; solved(p: Params, out: Grid, input: Grid): boolean };
 };
 
 export const defaultParams = (a: Algorithm): Params => Object.fromEntries(a.params.map(p => [p.key, p.default]));

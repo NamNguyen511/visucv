@@ -1,6 +1,7 @@
 // Binary morphology: erosion, dilation, opening, closing.
 // Binary grid: 1 = foreground. Pixels outside the image count as 0.
-import { type Algorithm, type Cell, type Grid, type Params, type Step, clone, grid } from "./types";
+import { components } from "./components";
+import { type Algorithm, type Cell, type Grid, type Params, type Step, clone, defaultParams, grid } from "./types";
 
 type Kind = "erode" | "dilate";
 
@@ -101,7 +102,7 @@ export const morphology: Algorithm = {
     ],
   },
   params: [
-    { key: "op", label: "Operation", options: ["erode", "dilate", "open", "close"], default: "open" },
+    { key: "op", label: "Operation", options: ["erode", "dilate", "open", "close"], default: "erode" },
     { key: "size", label: "Kernel size", options: [3, 5, 7], default: 3 },
     { key: "shape", label: "Kernel shape", options: ["square", "cross", "disk"], default: "square" },
   ],
@@ -118,6 +119,21 @@ export const morphology: Algorithm = {
     "closed = erode(dilate(A, B), B)",
   ],
   paintable: true,
+  challenge: {
+    prompt: "Remove every white speck but keep the big shapes about the size they are.",
+    hint: "Erosion kills specks but shrinks everything. What brings the shapes back afterwards?",
+    // No blob under 4 pixels left, and the white area stays within 75–125% of the non-speck area.
+    solved(_, out, input) {
+      const sizes = (g: Grid) => {
+        const L = components.run(g, { ...defaultParams(components), op: "label all blobs", conn: 8 }), n = new Map<number, number>();
+        L.data.forEach(v => { if (v > 0) n.set(v, (n.get(v) ?? 0) + 1); });
+        return [...n.values()];
+      };
+      const big = sizes(input).filter(s => s >= 4).reduce((a, b) => a + b, 0), after = sizes(out);
+      const area = after.reduce((a, b) => a + b, 0);
+      return after.length > 0 && Math.min(...after) >= 4 && area >= 0.75 * big && area <= 1.25 * big;
+    },
+  },
 
   panelTitles: ({ op }) =>
     ({
