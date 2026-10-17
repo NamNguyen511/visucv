@@ -11,7 +11,7 @@
   --pending: #e7e3d8;     /* not computed yet */
   --kernel: #e8a33d;      /* cells being read */
   --cursor: #d9480f;      /* cells being written */
-  --highlight: #fff1d6;   /* current pseudocode line */
+  --highlight: #dcf1ec;   /* current pseudocode line, active tab */
   --dots: #dcd8cc;
   color-scheme: light;
 }

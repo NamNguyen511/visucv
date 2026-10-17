@@ -17,6 +17,17 @@ const Surface3D = dynamic(() => import("./surface-3d"), {
 
 const SPEEDS = [3, 15, 60, 300];
 
+// Readout cells: long values take a full row; with an odd number of short ones, the last short one
+// does too, so the two-column grid never shows an empty half cell. (Order of cells is kept.)
+const long = (v: unknown) => String(v).length > 18;
+function wide(all: [string, unknown][], n: number) {
+  if (long(all[n][1])) return true;
+  let run = 0; // short cells since the last long one, including this one
+  for (let j = n; j >= 0 && !long(all[j][1]); j--) run++;
+  const nextIsShort = n + 1 < all.length && !long(all[n + 1][1]);
+  return run % 2 === 1 && !nextIsShort;
+}
+
 const btn =
   "inline-flex size-9 items-center justify-center rounded-lg border border-border bg-card hover:border-accent " +
   "focus-visible:outline-2 focus-visible:outline-accent";
@@ -175,23 +186,51 @@ export function Player({ id }: { id: string }) {
       </section>
 
       <section aria-label="Pseudocode" className="self-start rounded-2xl border border-border bg-card py-3 lg:sticky lg:top-20">
-        <pre className="overflow-x-auto font-mono text-[13px] leading-7">
-          {algo.pseudocode.map((l, n) => (
-            <div key={n} className={`border-l-[3px] px-4 ${n === f.line ? "border-kernel bg-highlight" : "border-transparent"}`}>
-              {l}
+        <div className="mb-2 flex items-center justify-between px-4 font-mono text-xs uppercase tracking-widest text-muted-foreground">
+          <span>Pseudocode</span>
+          <span className={playing ? "text-accent" : ""}>{playing ? "● playing" : i >= last ? "finished" : "paused"}</span>
+        </div>
+        {/* Wraps instead of scrolling: a sideways-scrolling box hid the ends of lines on phones. */}
+        <pre className="whitespace-pre-wrap break-words font-mono [font-variant-ligatures:none] text-[11px] leading-6 sm:text-[13px] sm:leading-7">
+          {algo.pseudocode.map((l, n) => {
+            // Indent | code | "  # comment". A line that doesn't fit wraps under its own code, and a
+            // comment that doesn't fit drops to the next line whole (the spaces before it hang).
+            const [, indent, code, gap = "", comment] = l.match(/^( *)(.*?)(?:( +)(#.*))?$/)!;
+            return (
+              <div key={n} className={`flex border-l-[3px] px-4 ${n === f.line ? "border-accent bg-highlight" : "border-transparent"}`}>
+                <span className="whitespace-pre">{indent}</span>
+                <span className="min-w-0 flex-1">
+                  {code}{gap}{comment && <span className="inline-block whitespace-pre text-muted-foreground">{comment}</span>}
+                </span>
+              </div>
+            );
+          })}
+        </pre>
+        <dl className="mx-4 mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border">
+          {Object.entries(f.vars).map(([k, v], n, all) => (
+            <div key={k} className={`bg-card px-3 py-2 ${wide(all, n) ? "col-span-2" : ""}`}>
+              <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{k}</dt>
+              <dd className="mt-0.5 break-words font-mono text-sm">{v}</dd>
             </div>
           ))}
-        </pre>
-        <table className="mx-4 mt-3 w-[calc(100%-2rem)] text-[13px]">
-          <tbody>
-            {Object.entries(f.vars).map(([k, v]) => (
-              <tr key={k} className="border-t border-border">
-                <td className="w-2/5 py-1.5 pr-3 align-top text-muted-foreground">{k}</td>
-                <td className="py-1.5 font-mono break-words">{v}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        </dl>
+        {f.window && (
+          <div className="mx-4 mt-4">
+            <h3 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Inside the kernel</h3>
+            <div className="mt-2 inline-grid gap-1" style={{ gridTemplateColumns: `repeat(${f.window.cells[0].length}, minmax(0, 1fr))` }}>
+              {f.window.cells.flatMap((row, r) => row.map((c, k) => {
+                const center = r === (f.window!.cells.length - 1) / 2 && k === (row.length - 1) / 2;
+                return (
+                  <span key={`${r}-${k}`} className={`flex h-8 min-w-10 items-center justify-center rounded-md border px-1 font-mono text-xs ${
+                    center ? "border-accent bg-highlight text-accent" : c === "" ? "border-dashed border-border" : "border-border"}`}>
+                    {c}
+                  </span>
+                );
+              }))}
+            </div>
+            {f.window.note && <p className="mt-2 font-mono text-xs text-muted-foreground">{f.window.note}</p>}
+          </div>
+        )}
       </section>
     </div>
   );

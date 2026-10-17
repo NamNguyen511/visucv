@@ -96,13 +96,13 @@ export const nonlinear: Algorithm = {
     { key: "sigmaR", label: "σ_r (bilateral)", options: [25, 50, 100, "∞"], default: 50 },
   ],
   pseudocode: [
-    "NONLINEAR-FILTER(I, r):",
-    "  for each pixel p:",
-    "    N(p) ← the (2r+1)² values around p",
-    "    median:    I′(p) ← middle of sort(N(p))",
-    "    min / max: I′(p) ← min or max of N(p)",
-    "    bilateral: w(q) ← Gₛ(‖p−q‖)·Gᵣ(|I(p)−I(q)|)",
-    "               I′(p) ← Σ w(q)·I(q) / Σ w(q)",
+    "def nonlinear_filter(I, r):",
+    "    for p in pixels(I):",
+    "        N = window(I, p, r)      # (2r+1)² values",
+    "        out[p] = median(N)",
+    "        out[p] = min(N)          # or max(N)",
+    "        w = Gs(dist(p, q)) * Gr(abs(I[p] - N))",
+    "        out[p] = (w * N).sum() / w.sum()",
   ],
 
   panelTitles: p => ["I", `${String(p.filter).split(" ")[0]} ${p.window}`, `Gaussian σ = ${sigmaS(p)} (linear)`],
@@ -146,7 +146,9 @@ export const nonlinear: Algorithm = {
           line = 6;
         } else vars["N(p)"] = rows(vals.map(lvl), n);
         vars["I(p) → I′(p)"] = `${lvl(c)} → ${lvl(v)}`;
-        yield { grids: [I, snap(), G], src: 0, dst: 1, read: cells, write: [[y, x]], line, vars };
+        const note = p.filter === "median" ? `median of ${vals.length} = ${lvl(v)}` : p.filter === "bilateral" ? `weighted mean = ${lvl(v)}` : `${String(p.filter).split(" ")[0]} = ${lvl(v)}`;
+        yield { grids: [I, snap(), G], src: 0, dst: 1, read: cells, write: [[y, x]], line, vars,
+                window: { cells: Array.from({ length: n }, (_, i) => vals.slice(i * n, (i + 1) * n).map(lvl)), note: `${note}  (gray levels)` } };
       }
     const C = cleanImage(String(p.image));
     yield {

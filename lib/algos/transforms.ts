@@ -111,11 +111,11 @@ export const transforms: Algorithm = {
     { key: "transform", label: "Transform", options: Object.keys(PRESETS), default: "rotate 30°" },
   ],
   pseudocode: [
-    "FORWARD_MAP(I, A):        ▸ about the centre c",
-    "  for each pixel x with I(x) = 1:",
-    "    x′ ← A·(x − c) + c",
-    "    O[round(x′)] ← 1           ▸ may leave holes",
-    "  classify A: Euclidean ⊂ similarity ⊂ affine",
+    "def forward_map(I, A):      # about the centre c",
+    "    for x in foreground(I):",
+    "        x2 = A @ (x - c) + c",
+    "        O[round(x2)] = 1        # may leave holes",
+    "    classify(A)  # Euclidean / similarity / affine",
   ],
   paintable: true,
 

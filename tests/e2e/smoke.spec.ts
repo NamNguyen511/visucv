@@ -1,5 +1,7 @@
 import { type Page, expect, test } from "@playwright/test";
-import { algorithms } from "../../lib/algos";
+import { algorithms, topics } from "../../lib/algos";
+
+const topicsOrder = () => topics.flatMap(t => t.items).filter(i => i.id).map(i => i.id!);
 
 // Every algorithm page, on desktop and phone. Each check here caught a real bug once:
 // playing from step 0 crashed (negative rAF delta); phones scrolled sideways (auto-sized grid column).
@@ -48,10 +50,11 @@ test.describe("home", () => {
   });
 
   // The redesign's small monospace labels are easy to make too faint: hold every text to WCAG AA.
-  for (const colorScheme of ["light", "dark"] as const)
-    test(`text contrast is at least 4.5:1 (${colorScheme})`, async ({ page }) => {
+  for (const colorScheme of ["light", "dark"] as const) for (const path of ["/", "/algo/morphology"])
+    test(`text contrast is at least 4.5:1 (${colorScheme}, ${path})`, async ({ page }) => {
       await page.emulateMedia({ colorScheme });
-      await page.goto("/");
+      await page.goto(path);
+      if (path !== "/") await page.getByLabel("Next step").click(); // show the readouts and kernel box
       const low = await page.evaluate(() => {
         // Let the browser convert any CSS colour (oklab, color-mix, …) to RGBA bytes.
         const ctx = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
@@ -83,6 +86,15 @@ test.describe("home", () => {
       });
       expect(low).toEqual([]);
     });
+
+  test("window-based pages show the values inside the kernel", async ({ page }) => {
+    for (const id of ["morphology", "convolution", "nonlinear"]) {
+      await page.goto(`/algo/${id}`);
+      await page.getByLabel("Next step").click();
+      await page.getByLabel("Next step").click();
+      await expect(page.getByRole("heading", { name: "Inside the kernel" }), id).toBeVisible();
+    }
+  });
 
   test("reduced motion shows a still, finished demo", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
@@ -138,6 +150,16 @@ for (const id of Object.keys(algorithms)) {
       const clipped = await page.locator("#the-math ~ dl dd:has(.katex-display)").evaluateAll(els =>
         els.filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.parentElement!.querySelector("dt")!.textContent));
       expect(clipped).toEqual([]);
+    });
+
+    // Regression: the pseudocode box scrolled sideways on phones, hiding the ends of lines.
+    test("pseudocode lines are never cut off; previous / next links lead on", async ({ page }) => {
+      await open(page, id);
+      const pre = page.locator("section[aria-label=Pseudocode] pre");
+      expect(await pre.evaluate(e => e.scrollWidth - e.clientWidth)).toBeLessThanOrEqual(1);
+      const order = topicsOrder(), k = order.indexOf(id);
+      if (k > 0) await expect(page.locator(`a[rel=prev][href="/algo/${order[k - 1]}"]`)).toBeVisible();
+      if (k < order.length - 1) await expect(page.locator(`a[rel=next][href="/algo/${order[k + 1]}"]`)).toBeVisible();
     });
 
     test("no horizontal scroll", async ({ page }) => {

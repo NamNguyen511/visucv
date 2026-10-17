@@ -29,6 +29,17 @@ function hitCount(A: Grid, se: Cell[], y: number, x: number) {
   return n;
 }
 
+/** A's values under B centred at (y, x), for the "Inside the kernel" box; "" where B has no cell. */
+function windowOf(A: Grid, se: Cell[], y: number, x: number, note: string) {
+  const r = Math.max(...se.flat().map(Math.abs)), inB = new Set(se.map(([dy, dx]) => `${dy},${dx}`));
+  const cells = Array.from({ length: 2 * r + 1 }, (_, i) => Array.from({ length: 2 * r + 1 }, (_, j) => {
+    const yy = y + i - r, xx = x + j - r;
+    if (!inB.has(`${i - r},${j - r}`)) return "";
+    return yy >= 0 && yy < A.h && xx >= 0 && xx < A.w ? String(A.data[yy * A.w + xx]) : "0";
+  }));
+  return { cells, note: `${note}  (off-image = 0)` };
+}
+
 /** One erode/dilate sweep. With `panels`, yields a step per pixel; returns the output. */
 function* pass(A: Grid, se: Cell[], kind: Kind, panels: Grid[] | null, src: number): Generator<Step, Grid> {
   const out = grid(A.h, A.w, NaN);
@@ -46,6 +57,7 @@ function* pass(A: Grid, se: Cell[], kind: Kind, panels: Grid[] | null, src: numb
         read: se.map(([dy, dx]) => [y + dy, x + dx]),
         write: [[y, x]],
         line: base + (on ? 1 : 2),
+        window: windowOf(A, se, y, x, kind === "erode" ? `${hits} of ${se.length} on → fits = ${on}` : `${hits} of ${se.length} on → hits = ${on}`),
         vars: {
           p: `(${y}, ${x})`,
           "cells of B on 1": `${hits} / ${se.length}`,
@@ -94,16 +106,16 @@ export const morphology: Algorithm = {
     { key: "shape", label: "Kernel shape", options: ["square", "cross", "disk"], default: "square" },
   ],
   pseudocode: [
-    "ERODE(A, B):",
-    "  for each pixel p in A:",
-    "    if B centred at p fits inside A:  out[p] ← 1",
-    "    else:                             out[p] ← 0",
-    "DILATE(A, B):",
-    "  for each pixel p in A:",
-    "    if B centred at p hits A:         out[p] ← 1",
-    "    else:                             out[p] ← 0",
-    "OPEN(A, B)  = DILATE(ERODE(A, B), B)",
-    "CLOSE(A, B) = ERODE(DILATE(A, B), B)",
+    "def erode(A, B):",
+    "    for p in pixels(A):",
+    "        if all(A[p + b] for b in B): out[p] = 1",
+    "        else:                        out[p] = 0",
+    "def dilate(A, B):",
+    "    for p in pixels(A):",
+    "        if any(A[p + b] for b in B): out[p] = 1",
+    "        else:                        out[p] = 0",
+    "opened = dilate(erode(A, B), B)",
+    "closed = erode(dilate(A, B), B)",
   ],
   paintable: true,
 

@@ -31,11 +31,11 @@ Adopt the Lovable design's look and structure, filled with VisuCV's real content
 ## Scope
 **Now (home page):** hero, cards with hooks, tabs + search + Coming soon tab, footer credit, palettes, tests.
 
-**Follow-up (algorithm pages):**
+**Follow-up (algorithm pages), done 2026-10-17:**
 - Python-style pseudocode on all pages (user decision 2026-10-17: easier to understand than book-style)
-- "Inside the kernel" box for window-based pages
+- "Inside the kernel" box for window-based pages (morphology, convolution, nonlinear; Harris and edges later)
 - previous/next and "All algorithms" links
-- a readout strip for key values
+- readout cells for the step's values (replacing the table)
 - fix the pseudocode clipping on phones
 
 ## Not doing (and why)

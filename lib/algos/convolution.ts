@@ -81,11 +81,11 @@ export const convolution: Algorithm = {
     { key: "border", label: "Border", options: ["reflect 101", "replicate", "zero"], default: "reflect 101" },
   ],
   pseudocode: [
-    "CONVOLVE(I, K):",
-    "  K′ ← K rotated 180°     ▸ correlation: K′ ← K",
-    "  pad I by r with the border rule",
-    "  for each pixel (x, y):",
-    "    O(x, y) ← Σᵢ Σⱼ K′(i, j) · I(x+i, y+j)",
+    "def convolve(I, K):",
+    "    K2 = rot180(K)        # correlation: K2 = K",
+    "    I = pad(I, r, border)",
+    "    for y, x in pixels(I):",
+    "        O[y, x] = (K2 * window(I, y, x)).sum()",
   ],
 
   panelTitles: ({ kernel }) => ["I", signed(KERNELS[kernel as string]) ? "O  (mid-gray = 0)" : "O"],
@@ -124,6 +124,7 @@ export const convolution: Algorithm = {
         const edge = y < r || x < r || y >= I.h - r || x >= I.w - r;
         yield {
           grids: [I, { ...O, data: O.data.slice() }], src: 0, dst: 1, line: 4, read: win, write: [[y, x]],
+          window: { cells: vals.map(row => row.split(" ")), note: `weights K′ = ${rows(Kp)}${edge ? ` · ${b} padding` : ""}` },
           vars: { "(x, y)": `(${x}, ${y})`, "window I": vals.join(" / ") + (edge ? `   (${b} padding)` : ""),
                   "K′": rows(Kp), "Σ K′·I": lvl(v) + (sgn ? (v > 0 ? "  (positive)" : v < 0 ? "  (negative)" : "") : v > 1 || v < 0 ? "  (clipped for display)" : "") },
         };
