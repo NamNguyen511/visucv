@@ -143,6 +143,7 @@ export const fourier: Algorithm = {
     "    out = idft(G).real     # shown ring by ring",
     "    return out",
   ],
+  paintable: true,
 
   panelTitles: p => ["I", "log |F|  (centered)", highPass(p) ? "I′  (mid-gray = 0)" : "I′"],
 

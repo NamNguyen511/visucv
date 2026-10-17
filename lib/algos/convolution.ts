@@ -87,6 +87,7 @@ export const convolution: Algorithm = {
     "    for y, x in pixels(I):",
     "        O[y, x] = (K2 * window(I, y, x)).sum()",
   ],
+  paintable: true,
 
   panelTitles: ({ kernel }) => ["I", signed(KERNELS[kernel as string]) ? "O  (mid-gray = 0)" : "O"],
 

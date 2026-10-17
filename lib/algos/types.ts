@@ -32,7 +32,7 @@ export type Step = {
   /** Vector overlays, drawn on the `dst` panel unless a shape names its own `panel`. */
   shapes?: Shape[];
   /** "Inside the kernel": the values under the window this step, row by row ("" = not in the window). */
-  window?: { cells: string[][]; note?: string };
+  window?: { cells: string[][]; note?: string; marks?: [r: number, c: number][] }; // marks: cells that decide the result
 };
 
 /** Overlay in pixel coordinates: x = column, y = row, (x, y) = that pixel's centre. */

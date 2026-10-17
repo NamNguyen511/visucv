@@ -114,6 +114,7 @@ export const edges: Algorithm = {
     "    edges = grow(strong, into=weak)   # touching",
     "    return edges     # unreached weak pixels drop",
   ],
+  paintable: true,
 
   panelTitles: () => ["I", "blurred (σ = 1)", "‖∇I‖ and direction", "thinned (non-max)", "edges"],
 
@@ -169,6 +170,14 @@ export const edges: Algorithm = {
       yield {
         grids: [I, B, magShow, { ...thinShow, data: thinShow.data.slice() }, pending()], src: 2, dst: 3, line: 4,
         read: r.cells, write: [[y, x]], shapes: arrows,
+        window: {
+          cells: [-1, 0, 1].map(i => [-1, 0, 1].map(j => {
+            const yy = y + i, xx = x + j;
+            return yy >= 0 && yy < I.h && xx >= 0 && xx < w ? f(g.mag[yy * w + xx]) : "0";
+          })),
+          marks: r.cells.map(([cy, cx]) => [cy - y + 1, cx - x + 1] as [number, number]),
+          note: `‖∇I‖ · compare with the 2 marked neighbours along θ = ${r.label}`,
+        },
         vars: { p: `(${x}, ${y})`, "θ rounded": r.label, "‖∇I‖ behind · p · ahead": `${f(r.behind)} · ${f(g.mag[k])} · ${f(r.ahead)}`,
                 result: r.keep ? "kept: a ridge top" : "suppressed: a neighbour is stronger" },
       };

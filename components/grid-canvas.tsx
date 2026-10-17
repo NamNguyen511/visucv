@@ -18,11 +18,12 @@ type Props = {
   active?: boolean;
 };
 
+const NONE: never[] = []; // shared default, so panels without overlays don't redraw on every render
 const ease = (t: number) => 1 - (1 - t) ** 3;
 const centre = (cells: Cell[]) =>
   cells.length ? cells.reduce(([a, b], [y, x]) => [a + y / cells.length, b + x / cells.length], [0, 0]) : null;
 
-export function GridCanvas({ title, grid: g, read = [], write = [], onPaint, shapes = [], animate = false, active = false }: Props) {
+export function GridCanvas({ title, grid: g, read = NONE, write = NONE, onPaint, shapes = NONE, animate = false, active = false }: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const colors = useThemeColors();
   const paintValue = useRef<number | null>(null);
@@ -44,40 +45,48 @@ export function GridCanvas({ title, grid: g, read = [], write = [], onPaint, sha
   useEffect(() => {
     const ctx = ref.current?.getContext("2d");
     if (!ctx || !colors) return;
-    const writeSet = new Set(write.map(([y, x]) => y * g.w + x));
+
+    // The pixel layer (pixels, hatching, grid lines) is drawn once per step into an off-screen
+    // canvas; animation frames copy it and redraw only the developing cell and the overlays.
+    const base = document.createElement("canvas");
+    base.width = g.w * CELL; base.height = g.h * CELL;
+    const b = base.getContext("2d")!;
+    // "Not computed yet" cells get a diagonal hatch: a flat pale fill was indistinguishable from white pixels.
+    const hatch = new Path2D();
+    for (let y = 0; y < g.h; y++)
+      for (let x = 0; x < g.w; x++) {
+        const c = (g.labels ? labelColor : pixelColor)(g.data[y * g.w + x]);
+        b.fillStyle = c ?? colors.pending;
+        b.fillRect(x * CELL, y * CELL, CELL, CELL);
+        if (!c) { hatch.moveTo(x * CELL, (y + 1) * CELL); hatch.lineTo((x + 1) * CELL, y * CELL); }
+      }
+    b.strokeStyle = "rgba(110, 100, 80, 0.55)";
+    b.lineWidth = Math.max(1, CELL / 8);
+    b.stroke(hatch);
+    b.strokeStyle = "rgba(128, 128, 128, 0.3)"; // visible on both black and white pixels
+    b.lineWidth = 1;
+    b.beginPath();
+    for (let x = 1; x < g.w; x++) { b.moveTo(x * CELL + 0.5, 0); b.lineTo(x * CELL + 0.5, g.h * CELL); }
+    for (let y = 1; y < g.h; y++) { b.moveTo(0, y * CELL + 0.5); b.lineTo(g.w * CELL, y * CELL + 0.5); }
+    b.stroke();
 
     // t = animation progress (1 = settled). `shift` moves the read/write overlay from where it was.
     const draw = (t: number, shift: [number, number]) => {
       const e = ease(t), [sy, sx] = [shift[0] * (1 - e), shift[1] * (1 - e)];
-      // "Not computed yet" cells get a diagonal hatch: a flat pale fill was indistinguishable from white pixels.
-      const hatch = new Path2D();
-      for (let y = 0; y < g.h; y++)
-        for (let x = 0; x < g.w; x++) {
+      ctx.drawImage(base, 0, 0);
+      if (t < 1)
+        for (const [y, x] of write) {
           const c = (g.labels ? labelColor : pixelColor)(g.data[y * g.w + x]);
-          ctx.fillStyle = c ?? colors.pending;
-          if (c && t < 1 && writeSet.has(y * g.w + x)) {
-            // Develop: fade and grow in from the pending colour.
-            ctx.fillStyle = colors.pending;
-            ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
-            const inset = (CELL * (1 - e)) / 4;
-            ctx.globalAlpha = 0.25 + 0.75 * e;
-            ctx.fillStyle = c;
-            ctx.fillRect(x * CELL + inset, y * CELL + inset, CELL - 2 * inset, CELL - 2 * inset);
-            ctx.globalAlpha = 1;
-            continue;
-          }
+          if (!c) continue;
+          // Develop: fade and grow in from the pending colour.
+          ctx.fillStyle = colors.pending;
           ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
-          if (!c) { hatch.moveTo(x * CELL, (y + 1) * CELL); hatch.lineTo((x + 1) * CELL, y * CELL); }
+          const inset = (CELL * (1 - e)) / 4;
+          ctx.globalAlpha = 0.25 + 0.75 * e;
+          ctx.fillStyle = c;
+          ctx.fillRect(x * CELL + inset, y * CELL + inset, CELL - 2 * inset, CELL - 2 * inset);
+          ctx.globalAlpha = 1;
         }
-      ctx.strokeStyle = "rgba(110, 100, 80, 0.55)";
-      ctx.lineWidth = Math.max(1, CELL / 8);
-      ctx.stroke(hatch);
-      ctx.strokeStyle = "rgba(128, 128, 128, 0.3)"; // visible on both black and white pixels
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      for (let x = 1; x < g.w; x++) { ctx.moveTo(x * CELL + 0.5, 0); ctx.lineTo(x * CELL + 0.5, g.h * CELL); }
-      for (let y = 1; y < g.h; y++) { ctx.moveTo(0, y * CELL + 0.5); ctx.lineTo(g.w * CELL, y * CELL + 0.5); }
-      ctx.stroke();
       ctx.globalAlpha = 0.45;
       ctx.fillStyle = colors.kernel;
       for (const [y, x] of read) ctx.fillRect((x + sx) * CELL, (y + sy) * CELL, CELL, CELL); // off-image cells clip away
@@ -124,7 +133,7 @@ export function GridCanvas({ title, grid: g, read = [], write = [], onPaint, sha
       if (t < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => { cancelAnimationFrame(raf); draw(1, [0, 0]); };
+    return () => cancelAnimationFrame(raf); // the next run draws its own frame
   }, [g, read, write, shapes, colors, CELL, animate]);
 
   const cellAt = (e: React.PointerEvent<HTMLCanvasElement>) => {

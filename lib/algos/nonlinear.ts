@@ -104,6 +104,7 @@ export const nonlinear: Algorithm = {
     "        w = Gs(dist(p, q)) * Gr(abs(I[p] - N))",
     "        out[p] = (w * N).sum() / w.sum()",
   ],
+  paintable: true,
 
   panelTitles: p => ["I", `${String(p.filter).split(" ")[0]} ${p.window}`, `Gaussian σ = ${sigmaS(p)} (linear)`],
 
@@ -148,7 +149,8 @@ export const nonlinear: Algorithm = {
         vars["I(p) → I′(p)"] = `${lvl(c)} → ${lvl(v)}`;
         const note = p.filter === "median" ? `median of ${vals.length} = ${lvl(v)}` : p.filter === "bilateral" ? `weighted mean = ${lvl(v)}` : `${String(p.filter).split(" ")[0]} = ${lvl(v)}`;
         yield { grids: [I, snap(), G], src: 0, dst: 1, read: cells, write: [[y, x]], line, vars,
-                window: { cells: Array.from({ length: n }, (_, i) => vals.slice(i * n, (i + 1) * n).map(lvl)), note: `${note}  (gray levels)` } };
+                window: { cells: Array.from({ length: n }, (_, i) => vals.slice(i * n, (i + 1) * n).map(lvl)), note: `${note}  (gray levels)`,
+                          marks: p.filter === "bilateral" ? [] : [[Math.floor(vals.indexOf(v) / n), vals.indexOf(v) % n]] } };
       }
     const C = cleanImage(String(p.image));
     yield {

@@ -15,7 +15,7 @@ const Surface3D = dynamic(() => import("./surface-3d"), {
   loading: () => <div className="aspect-[16/10] w-full animate-pulse rounded-xl bg-pending" />,
 });
 
-const SPEEDS = [3, 15, 60, 300];
+const SPEEDS: [string, number][] = [["0.5×", 7.5], ["1×", 15], ["4×", 60], ["16×", 240]]; // steps/s
 
 // Readout cells: long values take a full row; with an odd number of short ones, the last short one
 // does too, so the two-column grid never shows an empty half cell. (Order of cells is kept.)
@@ -164,7 +164,7 @@ export function Player({ id }: { id: string }) {
           <label className="flex items-center gap-2 text-muted-foreground">
             Speed
             <select className={select} value={speed} onChange={e => setSpeed(+e.target.value)}>
-              {SPEEDS.map(s => <option key={s} value={s}>{s} steps/s</option>)}
+              {SPEEDS.map(([label, s]) => <option key={s} value={s}>{label}</option>)}
             </select>
           </label>
           {algo.paintable && (
@@ -222,9 +222,10 @@ export function Player({ id }: { id: string }) {
             <div className="mt-2 inline-grid gap-1" style={{ gridTemplateColumns: `repeat(${f.window.cells[0].length}, minmax(0, 1fr))` }}>
               {f.window.cells.flatMap((row, r) => row.map((c, k) => {
                 const center = r === (f.window!.cells.length - 1) / 2 && k === (row.length - 1) / 2;
+                const marked = f.window!.marks?.some(([mr, mc]) => mr === r && mc === k);
                 return (
                   <span key={`${r}-${k}`} className={`flex h-8 min-w-10 items-center justify-center rounded-md border px-1 font-mono text-xs ${
-                    center ? "border-accent bg-highlight text-accent" : c === "" ? "border-dashed border-border" : "border-border"}`}>
+                    marked ? "border-2 border-cursor font-semibold" : center ? "border-accent bg-highlight text-accent" : c === "" ? "border-dashed border-border" : "border-border"}`}>
                     {c}
                   </span>
                 );

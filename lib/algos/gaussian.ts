@@ -79,6 +79,7 @@ export const gaussian: Algorithm = {
     "        O[y, x] = sum(g[k] * T[y+k, x])",
     "    return O",
   ],
+  paintable: true,
   view3d: true,
 
   panelTitles: () => ["I", "T = rows blurred", "O = rows + columns"],

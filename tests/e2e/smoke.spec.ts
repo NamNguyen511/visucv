@@ -88,7 +88,7 @@ test.describe("home", () => {
     });
 
   test("window-based pages show the values inside the kernel", async ({ page }) => {
-    for (const id of ["morphology", "convolution", "nonlinear"]) {
+    for (const id of ["morphology", "convolution", "nonlinear", "harris"]) {
       await page.goto(`/algo/${id}`);
       await page.getByLabel("Next step").click();
       await page.getByLabel("Next step").click();

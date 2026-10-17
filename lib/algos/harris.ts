@@ -131,6 +131,7 @@ export const harris: Algorithm = {
     "    keep = (R > 0.1 * R.max()) & local_max(R)",
     "    return keep",
   ],
+  paintable: true,
 
   panelTitles: p => ["I", p.method === "Shi-Tomasi" ? "min(λ₁, λ₂)" : "R  (mid-gray = 0, √-scaled)"],
 
@@ -158,6 +159,13 @@ export const harris: Algorithm = {
         const shapes: Shape[] = [{ kind: "ellipse", cx: x, cy: y, a: s * Math.sqrt(Math.max(l1, 0)), b: s * Math.sqrt(Math.max(l2, 0)), theta, panel: 0 }];
         yield {
           grids: [I, view(S, h, w, method, k)], src: 0, dst: 1, read: win, write: [[y, x]], line: method === "Shi-Tomasi" ? 5 : 4, shapes,
+          window: {
+            cells: Array.from({ length: 2 * r + 1 }, (_, i) => Array.from({ length: 2 * r + 1 }, (_, j) => {
+              const yy = Math.min(h - 1, Math.max(0, y + i - r)), xx = Math.min(w - 1, Math.max(0, x + j - r));
+              return mag[yy * w + xx].toFixed(2);
+            })),
+            note: "‖∇I‖ in the window: M sums Ix², IxIy, Iy² over these pixels",
+          },
           vars: {
             "p = (x, y)": `(${x}, ${y})`,
             M: `[${e(T.a[k])} ${e(T.b[k])} ; ${e(T.b[k])} ${e(T.c[k])}]`,

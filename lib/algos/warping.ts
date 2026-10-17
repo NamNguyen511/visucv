@@ -72,6 +72,7 @@ export const warping: Algorithm = {
     "        O[q] = I[round(y), round(x)]   # nearest",
     "        O[q] = bilinear(I, x, y)    # blend 4 pixels",
   ],
+  paintable: true,
 
   panelTitles: ({ method }) => ["I (source)", method === "forward" ? "O = pushed forward" : "O = pulled back"],
 

@@ -94,6 +94,7 @@ export const otsu: Algorithm = {
     "        if var_b > best: best, t_star = var_b, t",
     "    return t_star       # binary = I > t_star",
   ],
+  paintable: true,
 
   panelTitles: () => ["I", "I > t"],
 
