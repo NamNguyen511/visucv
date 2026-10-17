@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import "katex/dist/katex.min.css";
 import { Explainer } from "@/components/explainer";
 import { Player } from "@/components/player";
+import { TrackVisit } from "@/components/progress";
 import { algorithms, topics } from "@/lib/algos";
 
 // Live pages in roadmap order, for previous / next.
@@ -34,6 +35,7 @@ export default async function AlgoPage({ params }: PageProps<"/algo/[id]">) {
       <h1 className="mt-1 text-3xl font-bold tracking-tight xl:text-4xl">{meta.title}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{meta.ref}</p>
       <p className="mt-3 max-w-2xl text-lg leading-relaxed">{meta.lead}</p>
+      <TrackVisit id={id} />
       <Player id={id} />
       <Explainer explain={explain} />
       <nav aria-label="More algorithms" className="mt-10 flex justify-between gap-4 border-t border-border pt-6">

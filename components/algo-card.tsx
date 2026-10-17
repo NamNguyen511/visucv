@@ -14,12 +14,14 @@ export function AlgoCard({ card }: { card: CardData }) {
   return (
     <Link
       href={`/algo/${id}`}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-0.5 hover:border-accent hover:shadow-md"
+      className="group flex flex-col overflow-hidden rounded-2xl sm:flex-row border border-border bg-card transition hover:-translate-y-0.5 hover:border-accent hover:shadow-md"
     >
-      <div className="pointer-events-none grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-border bg-background/60 p-4">
+      <div className="pointer-events-none grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-border bg-background/60 p-4 sm:w-[46%] sm:shrink-0 sm:border-b-0 sm:border-r">
         <GridCanvas title="input" grid={input} />
         <ArrowRight className="mt-4 size-4 text-muted-foreground" />
-        <GridCanvas title="output" grid={output} shapes={shapes} />
+        <div className="min-w-0 motion-safe:group-hover:animate-[develop_700ms_ease-out]">
+          <GridCanvas title="output" grid={output} shapes={shapes} />
+        </div>
       </div>
       <div className="flex flex-1 flex-col p-4">
         <p className="font-mono text-[11px] uppercase tracking-widest text-accent">{card.topic}</p>

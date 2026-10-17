@@ -25,7 +25,7 @@ test.describe("home", () => {
     // suite's parallel load an occasional page took over 5 s, before and after the canvas changes.
     await expect(demo).not.toHaveAttribute("data-step", first!, { timeout: 15_000 });
     for (const id of Object.keys(algorithms))
-      await expect(page.locator(`a[href="/algo/${id}"]`).filter({ hasText: algorithms[id].meta.title })).toHaveCount(1);
+      await expect(page.locator(`#algorithms a[href="/algo/${id}"]`).filter({ hasText: algorithms[id].meta.title })).toHaveCount(1);
     const [scroll, inner] = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
     expect(scroll).toBeLessThanOrEqual(inner);
     expect(errors).toEqual([]);
@@ -96,6 +96,40 @@ test.describe("home", () => {
       await page.getByLabel("Next step").click();
       await expect(page.getByRole("heading", { name: "Inside the kernel" }), id).toBeVisible();
     }
+  });
+
+  test("hero: drawing changes the output, and every chip shows a different result", async ({ page }) => {
+    await page.goto("/");
+    const hero = page.locator("[data-step]");
+    const [input, output] = [hero.locator("canvas").nth(0), hero.locator("canvas").nth(1)];
+    const snap = () => output.evaluate(c => (c as HTMLCanvasElement).toDataURL());
+    await page.getByRole("button", { name: "Dilation" }).click();
+    await expect(hero).toHaveAttribute("data-step", /\d/);
+    // Drawing jumps to the live result; paint a short stroke in an empty corner.
+    const box = (await input.boundingBox())!;
+    await page.mouse.move(box.x + box.width * 0.9, box.y + box.height * 0.9);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width * 0.97, box.y + box.height * 0.9, { steps: 4 });
+    await page.mouse.up();
+    await expect(hero).toHaveAttribute("data-step", "done");
+    const seen = new Set<string>();
+    for (const chip of ["Erosion", "Dilation", "Components", "Distance", "Edges"]) {
+      await page.getByRole("button", { name: chip, exact: true }).click();
+      await page.getByRole("button", { name: /Reset drawing/ }).isVisible();
+      if (chip === "Erosion" || chip === "Dilation") await page.getByRole("button", { name: /Pause demo|Play demo/ }).first().isVisible();
+      await expect.poll(async () => { const d = await snap(); return seen.has(d) ? "same" : (seen.add(d), "new"); }, { message: chip }).toBe("new");
+    }
+  });
+
+  test("progress memory: visited stops get a check and Continue appears", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("link", { name: /^Continue/ })).toHaveCount(0);
+    await page.goto("/algo/distance");
+    // The visit is recorded once the page is interactive; a real visitor stays longer than this.
+    await expect.poll(() => page.evaluate(() => localStorage.getItem("visucv:progress"))).toContain("distance");
+    await page.goto("/");
+    await expect(page.getByLabel("Stop 5, visited")).toBeVisible();
+    await expect(page.getByRole("link", { name: /^Continue/ })).toHaveAttribute("href", "/algo/distance");
   });
 
   test("reduced motion shows a still, finished demo", async ({ page }) => {

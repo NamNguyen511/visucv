@@ -57,3 +57,7 @@ body {
 }
 
 canvas.pixels { image-rendering: pixelated; }
+
+@keyframes fade-in { from { opacity: 0; } }
+/* Card hover: the output "develops" left to right over its own frame. */
+@keyframes develop { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
