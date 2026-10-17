@@ -32,6 +32,9 @@ The player, home-page card and e2e smoke tests pick the page up automatically.
 - Window-based pages fill `Step.window` (values under the kernel, "" outside it) for the "Inside the kernel" box.
 - Home cards (path stops, outcome pairs) are computed at build time (`lib/algos/card.ts`). Only the hero runs
   algorithms in the browser, and only the four modules its chips import (not the whole registry).
+- Photograph lab (`lib/photo.ts`, `/photo`) calls the plain filter functions, never `steps()`; photos reach
+  ~150k pixels, so no `Math.max(...array)` spreads on image data (argument limit). Photos must be public domain/CC0,
+  credited in `public/photos/CREDITS.md`.
 - Learning progress lives in `localStorage` via `lib/progress.ts` (guarded; read after mount).
 - Grid tracks that hold canvases or truncated text use `minmax(0, 1fr)`, never a bare auto column.
 - Three.js only on pages where 3-D shows something 2-D can't; it's lazy-loaded.

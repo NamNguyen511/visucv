@@ -52,11 +52,12 @@ test.describe("home", () => {
   });
 
   // The redesign's small monospace labels are easy to make too faint: hold every text to WCAG AA.
-  for (const colorScheme of ["light", "dark"] as const) for (const path of ["/", "/algo/morphology"])
+  for (const colorScheme of ["light", "dark"] as const) for (const path of ["/", "/algo/morphology", "/photo"])
     test(`text contrast is at least 4.5:1 (${colorScheme}, ${path})`, async ({ page }) => {
       await page.emulateMedia({ colorScheme });
       await page.goto(path);
-      if (path !== "/") await page.getByLabel("Next step").click(); // show the readouts and kernel box
+      if (path.startsWith("/algo")) await page.getByLabel("Next step").click(); // show the readouts and kernel box
+      if (path === "/photo") await expect(page.getByRole("heading", { name: "Inside one pixel" })).toBeVisible();
       const low = await page.evaluate(() => {
         // Let the browser convert any CSS colour (oklab, color-mix, …) to RGBA bytes.
         const ctx = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
@@ -146,6 +147,29 @@ test.describe("home", () => {
         await page.locator("section[aria-label=Demo] label").filter({ hasText: label }).first().locator("select").selectOption(value);
       await expect(page.getByText("Solved!"), id).toBeVisible();
     }
+  });
+
+  test("photograph lab: every filter changes the image, hovering inspects, your own photo loads", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", e => errors.push(e.message));
+    await page.goto("/photo");
+    const shown = page.getByRole("img", { name: / of the photo$/ });
+    await expect(page.getByRole("heading", { name: "Inside one pixel" })).toBeVisible();
+    const snap = () => shown.evaluate(c => (c as HTMLCanvasElement).toDataURL());
+    const seen = new Set<string>();
+    for (const f of ["Colour", "Grayscale", "Otsu threshold", "Gaussian blur", "Median 3×3", "Sharpen", "Edges", "Harris corners"]) {
+      await page.getByRole("button", { name: f, exact: true }).click();
+      await expect.poll(async () => { const d = await snap(); return seen.has(d) ? "same" : (seen.add(d), "new"); }, { message: f }).toBe("new");
+    }
+    const where = page.getByText(/^\(x, y\) = /), before = await where.textContent();
+    const box = (await shown.boundingBox())!;
+    await shown.hover({ position: { x: box.width * 0.2, y: box.height * 0.8 } }); // scrolls into view first
+    await expect(where).not.toHaveText(before!);
+    await page.getByLabel(/Use your own photo/).setInputFiles("public/photos/camera.jpg");
+    await expect.poll(snap).not.toBe([...seen].at(-1));
+    const [scroll, inner] = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
+    expect(scroll).toBeLessThanOrEqual(inner);
+    expect(errors).toEqual([]);
   });
 
   test("reduced motion shows a still, finished demo", async ({ page }) => {

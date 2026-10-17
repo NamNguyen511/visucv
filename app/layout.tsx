@@ -17,13 +17,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${sans.variable} ${mono.variable} antialiased`}>
       <body className="min-h-dvh font-sans">
         <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur">
-          <div className="mx-auto flex max-w-[90rem] items-center gap-3 px-4 py-3 sm:px-6">
+          <div className="mx-auto flex max-w-[90rem] items-center gap-3 px-4 py-3 sm:gap-5 sm:px-6">
             <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-tight">
               <Scan aria-hidden className="size-5 text-accent" />
               <span>Visu<span className="text-accent">CV</span></span>
             </Link>
             <span className="hidden border-l border-border pl-3 text-sm text-muted-foreground sm:inline">computer vision, step by step</span>
-            <Link href="/#algorithms" className="ml-auto inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+            <Link href="/photo" className="ml-auto inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+              Photograph lab
+            </Link>
+            <Link href="/#algorithms" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
               Explore algorithms <ArrowUpRight aria-hidden className="size-4" />
             </Link>
           </div>

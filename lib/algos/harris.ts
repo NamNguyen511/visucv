@@ -38,7 +38,7 @@ export function score(T: Tensor, k: number, method: string): number {
 /** Corners: score above THRESHOLD · max at a 3×3 local maximum. A box window makes flat plateaus of
  *  equal scores (equal within roundoff); each plateau gives one corner, at its centre (may be fractional). */
 export function detect(S: Float64Array, h: number, w: number): Cell[] {
-  const mx = Math.max(...S), t = THRESHOLD * mx, eps = 1e-9 * mx, out: Cell[] = [];
+  const mx = S.reduce((a, b) => Math.max(a, b), -Infinity), t = THRESHOLD * mx, eps = 1e-9 * mx, out: Cell[] = [];
   const near = (y: number, x: number) => {
     const r: number[] = [];
     for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++)

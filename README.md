@@ -31,6 +31,9 @@ learning alongside it.
 
 More are on the roadmap (see the home page).
 
+**Photograph lab** (`/photo`): the same algorithms on a real photo (samples or your own, processed in
+your browser only), with an inspector that shows every number behind one pixel.
+
 ## Credit
 
 VisuCV is based on
@@ -44,6 +47,9 @@ by Stan Birchfield (NVIDIA / University of Washington, 2026), licensed under
 - **Changed:** the visualizations, step-through pseudocode and TypeScript implementations are
   VisuCV's own work, not the book's Python code.
 - This is an unofficial project, not affiliated with or endorsed by the author.
+
+Sample photographs come from scikit-image: astronaut Eileen Collins (NASA, public domain), Chelsea the
+cat (Stéfan van der Walt, CC0) and "camera" (Lav Varshney, CC0). See `public/photos/CREDITS.md`.
 
 ## Run it
 
