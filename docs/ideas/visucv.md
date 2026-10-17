@@ -50,7 +50,13 @@ home page) is the single source of order: change the order there first, then her
 | 12 | Filtering | Fourier transform & frequency filtering | Ch 15 | ✅ |
 
 The MVP ends with the Filtering group. Features & motion, 3-D vision and Deep learning come after,
-in the same roadmap order.
+in the same roadmap order:
+
+| # | Group | Page | Book | Status |
+|---|---|---|---|---|
+| 13 | Features & motion | Harris corners (with Shi-Tomasi) | Ch 20 | ✅ |
+| 14 | Features & motion | Optical flow (Lucas–Kanade) | Ch 21 | next |
+| 15 | Features & motion | RANSAC | Ch 23 | |
 
 ## Not Doing (and Why)
 - Running user code / Pyodide — pseudocode chosen; saves ~10 MB and complexity.

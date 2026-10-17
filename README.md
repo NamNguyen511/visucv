@@ -27,6 +27,7 @@ learning alongside it.
 | Edge Detection: Sobel & Canny | Ch. 12 |
 | Median, Min/Max & Bilateral Filters | Ch. 14 |
 | Fourier Transform & Frequency Filtering | Ch. 15 |
+| Harris & Shi-Tomasi Corners | Ch. 20 |
 
 More are on the roadmap (see the home page).
 
