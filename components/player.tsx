@@ -29,7 +29,7 @@ function wide(all: [string, unknown][], n: number) {
 }
 
 const btn =
-  "inline-flex size-9 items-center justify-center rounded-lg border border-border bg-card hover:border-accent " +
+  "inline-flex size-9 items-center justify-center rounded-lg border border-border bg-card transition hover:border-accent active:translate-y-px " +
   "focus-visible:outline-2 focus-visible:outline-accent";
 const select = "rounded-lg border border-border bg-card px-2 py-1 text-foreground";
 
@@ -136,6 +136,8 @@ export function Player({ id }: { id: string }) {
               write={k === f.dst ? f.write : undefined}
               shapes={f.shapes?.filter(s => (s.panel ?? f.dst) === k)}
               onPaint={algo.paintable && k === 0 ? paint : undefined}
+              animate
+              active={k === f.dst && f.write.length > 0}
             />
           ))}
         </div>

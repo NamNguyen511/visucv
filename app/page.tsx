@@ -15,10 +15,10 @@ export default function Home() {
       <section className="grid grid-cols-[minmax(0,1fr)] items-center gap-10 py-4 sm:py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
         <div>
           <p className="font-mono text-xs uppercase tracking-widest text-accent">An interactive computer vision notebook</p>
-          <h1 className="mt-4 text-4xl font-bold tracking-tight text-balance sm:text-5xl">
+          <h1 className="mt-4 text-4xl font-bold tracking-tight text-balance sm:text-5xl xl:text-6xl">
             Learn computer vision by <span className="text-accent">watching it run</span>.
           </h1>
-          <p className="mt-5 max-w-xl text-lg text-muted-foreground">
+          <p className="mt-5 max-w-xl text-lg text-muted-foreground xl:text-xl">
             Follow the pixels. See the math. Connect every line of an algorithm to what happens in the image.
           </p>
           <Link

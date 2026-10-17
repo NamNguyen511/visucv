@@ -7,13 +7,13 @@ import { defaultParams } from "@/lib/algos/types";
 import { stepsDue } from "@/lib/playback";
 import { GridCanvas } from "./grid-canvas";
 
-const SPEED = 30; // steps/s
+const SPEED = 8; // steps/s: slow enough for the kernel to visibly glide
 const CODE = [
   "for y, x in pixels(A):",
   "    window = A[y-1:y+2, x-1:x+2]",
   "    out[y, x] = 1 if window.all() else 0",
 ];
-const btn = "inline-flex size-9 items-center justify-center rounded-lg border border-border hover:border-accent";
+const btn = "inline-flex size-9 items-center justify-center rounded-lg border border-border transition hover:border-accent active:translate-y-px";
 
 export function HeroDemo() {
   const frames = useMemo(() => {
@@ -55,9 +55,9 @@ export function HeroDemo() {
       </div>
       <div className="p-4">
         <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
-          <GridCanvas title="input A" grid={f.grids[0]} read={f.read} />
+          <GridCanvas title="input A" grid={f.grids[0]} read={f.read} animate />
           <span aria-hidden className="mt-4 text-muted-foreground">→</span>
-          <GridCanvas title="out = erode(A)" grid={f.grids[1]} write={f.write} />
+          <GridCanvas title="out = erode(A)" grid={f.grids[1]} write={f.write} animate active />
         </div>
         <pre className="mt-4 overflow-hidden rounded-lg bg-highlight px-3 py-2 font-mono text-[12px] leading-5">
           {CODE.map((l, n) => <div key={n} className={`overflow-hidden text-ellipsis whitespace-pre ${n === 2 ? "text-accent" : ""}`}>{l}</div>)}

@@ -31,7 +31,7 @@ export default async function AlgoPage({ params }: PageProps<"/algo/[id]">) {
         <ArrowLeft aria-hidden className="size-4" /> All algorithms
       </Link>
       <p className="mt-4 font-mono text-xs uppercase tracking-widest text-accent">{meta.topic}</p>
-      <h1 className="mt-1 text-3xl font-bold tracking-tight">{meta.title}</h1>
+      <h1 className="mt-1 text-3xl font-bold tracking-tight xl:text-4xl">{meta.title}</h1>
       <p className="mt-1 text-sm text-muted-foreground">{meta.ref}</p>
       <p className="mt-3 max-w-2xl text-lg leading-relaxed">{meta.lead}</p>
       <Player id={id} />
