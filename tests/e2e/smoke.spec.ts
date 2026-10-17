@@ -21,7 +21,9 @@ test.describe("home", () => {
     await page.goto("/");
     const demo = page.locator("[data-step]");
     const first = await demo.getAttribute("data-step");
-    await expect(demo).not.toHaveAttribute("data-step", first!);
+    // The hero starts ~160 ms after load (under 2 s even at 12× CPU throttling), but under the
+    // suite's parallel load an occasional page took over 5 s, before and after the canvas changes.
+    await expect(demo).not.toHaveAttribute("data-step", first!, { timeout: 15_000 });
     for (const id of Object.keys(algorithms))
       await expect(page.locator(`a[href="/algo/${id}"]`).filter({ hasText: algorithms[id].meta.title })).toHaveCount(1);
     const [scroll, inner] = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
