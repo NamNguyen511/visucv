@@ -41,6 +41,9 @@ test.describe("home", () => {
 for (const id of Object.keys(algorithms)) {
   test.describe(id, () => {
     test("play from the first step advances without errors", async ({ page }) => {
+      // 3-D pages render with software WebGL (swiftshader) here, so each click is slow; this test
+      // sat at ~29 s of the 30 s limit and failed whenever the machine was busy.
+      if (algorithms[id].view3d) test.slow();
       const errors = await open(page, id);
       for (let k = 0; k < 8; k++) {
         await page.getByLabel("First step").click();
