@@ -54,6 +54,7 @@ export const convolution: Algorithm = {
     topic: "Filtering",
     ref: "Birchfield, Ch. 10 — Convolution",
     lead: "Slide a small grid of weights over the image and sum the products; convolution flips the grid first, correlation doesn't.",
+    hook: "Slide a kernel. Flip it, or don't.",
   },
   explain: {
     ideas: [

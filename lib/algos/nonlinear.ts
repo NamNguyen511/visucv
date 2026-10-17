@@ -69,6 +69,7 @@ export const nonlinear: Algorithm = {
     topic: "Filtering",
     ref: "Birchfield, Ch. 14 — Nonlinear Filters",
     lead: "Filters that aren't weighted sums: the median ignores outliers, min/max erode and dilate, and the bilateral filter smooths without crossing edges.",
+    hook: "Filters that ignore outliers and keep edges.",
   },
   explain: {
     ideas: [

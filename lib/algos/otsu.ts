@@ -59,6 +59,7 @@ export const otsu: Algorithm = {
     topic: "Binary images",
     ref: "Birchfield, Ch. 3 — Thresholding, Erosion, and Dilation",
     lead: "Turn a gray image into black and white by trying every threshold and keeping the one that best separates the two classes.",
+    hook: "Let the histogram pick the threshold.",
   },
   explain: {
     ideas: [

@@ -27,6 +27,63 @@ test.describe("home", () => {
     expect(errors).toEqual([]);
   });
 
+  test("topic tabs, search and the Coming soon tab filter the collection", async ({ page }) => {
+    await page.goto("/");
+    const cards = page.locator("#algorithms a[href^='/algo/']");
+    await expect(cards).toHaveCount(Object.keys(algorithms).length);
+    await page.getByRole("button", { name: "Filtering", exact: true }).click();
+    const filtering = Object.values(algorithms).filter(a => a.meta.topic === "Filtering").length;
+    await expect(cards).toHaveCount(filtering);
+    await page.getByRole("button", { name: "All algorithms" }).click();
+    for (const [q, id] of [["corner", "harris"], ["ch 12", "edges"], ["histogram", "otsu"]]) {
+      await page.getByLabel("Find an algorithm").fill(q);
+      await expect(cards, q).toHaveCount(1);
+      await expect(cards.first()).toHaveAttribute("href", `/algo/${id}`);
+    }
+    await page.getByLabel("Find an algorithm").fill("");
+    await page.getByRole("button", { name: /^Coming soon/ }).click();
+    await expect(cards).toHaveCount(0);
+    await expect(page.getByText("Optical flow (Lucas–Kanade)")).toBeVisible();
+    await expect(page.getByRole("progressbar")).toBeVisible();
+  });
+
+  // The redesign's small monospace labels are easy to make too faint: hold every text to WCAG AA.
+  for (const colorScheme of ["light", "dark"] as const)
+    test(`text contrast is at least 4.5:1 (${colorScheme})`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme });
+      await page.goto("/");
+      const low = await page.evaluate(() => {
+        // Let the browser convert any CSS colour (oklab, color-mix, …) to RGBA bytes.
+        const ctx = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
+        const rgb = (c: string) => {
+          ctx.clearRect(0, 0, 1, 1); ctx.fillStyle = c; ctx.fillRect(0, 0, 1, 1);
+          const [r, g, b, a] = ctx.getImageData(0, 0, 1, 1).data;
+          return [r, g, b, a / 255];
+        };
+        const lum = ([r, g, b]: number[]) => {
+          const f = (v: number) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+          return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+        };
+        const bg = (el: Element | null): number[] => {
+          for (; el; el = el.parentElement) {
+            const c = rgb(getComputedStyle(el).backgroundColor);
+            if (c[3] > 0.5) return c;
+          }
+          return rgb(getComputedStyle(document.body).backgroundColor);
+        };
+        const out: string[] = [];
+        for (const el of document.querySelectorAll("body *")) {
+          const own = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent!.trim());
+          if (!own || !(el as HTMLElement).offsetParent) continue;
+          const [a, b] = [lum(rgb(getComputedStyle(el).color)), lum(bg(el))];
+          const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+          if (ratio < 4.5) out.push(`${ratio.toFixed(2)} "${el.textContent!.trim().slice(0, 30)}"`);
+        }
+        return out;
+      });
+      expect(low).toEqual([]);
+    });
+
   test("reduced motion shows a still, finished demo", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");

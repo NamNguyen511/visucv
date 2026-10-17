@@ -96,6 +96,7 @@ export const harris: Algorithm = {
     topic: "Features & motion",
     ref: "Birchfield, Ch. 20 — Feature Detection and Matching",
     lead: "Sum the gradients around each pixel into a 2×2 matrix; when both its eigenvalues are large, the pixel is a corner you can find again.",
+    hook: "Points you can find again in another image.",
   },
   explain: {
     ideas: [

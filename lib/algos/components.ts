@@ -65,6 +65,7 @@ export const components: Algorithm = {
     topic: "Binary images",
     ref: "Birchfield, Ch. 4 — Flood Fill and Connected Components",
     lead: "Grow a region outward from one seed pixel, then give every separate blob in the image its own label.",
+    hook: "Find the objects hiding in the pixels.",
   },
   explain: {
     ideas: [

@@ -11,6 +11,10 @@ describe.each(Object.values(algorithms))("$meta.id explanation", a => {
     expect(a.meta.lead.replace(/\.$/, "")).not.toMatch(/[.!?]\s/);
   });
 
+  it("hook is at most 8 words", () => {
+    expect(words(a.meta.hook)).toBeLessThanOrEqual(8);
+  });
+
   it("2–4 key ideas, each short", () => {
     expect(a.explain.ideas.length).toBeGreaterThanOrEqual(2);
     expect(a.explain.ideas.length).toBeLessThanOrEqual(4);

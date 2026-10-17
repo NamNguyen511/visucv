@@ -108,6 +108,7 @@ export const fourier: Algorithm = {
     topic: "Filtering",
     ref: "Birchfield, Ch. 15 — The Fourier Transform and Frequency-Domain Filtering",
     lead: "Rewrite an image as a sum of sinusoidal gratings, then filter it by masking frequencies: keep the center to blur, the outside for edges.",
+    hook: "Rewrite an image as stripes, then edit them.",
   },
   explain: {
     ideas: [

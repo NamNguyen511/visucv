@@ -1,7 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ArrowUpRight } from "lucide-react";
 import { type CardData, toGrid } from "@/lib/algos/card";
 import { GridCanvas } from "./grid-canvas";
 
@@ -14,20 +14,24 @@ export function AlgoCard({ card }: { card: CardData }) {
   return (
     <Link
       href={`/algo/${id}`}
-      className="group flex flex-col rounded-2xl border border-border bg-card p-4 transition hover:-translate-y-0.5 hover:border-accent hover:shadow-md"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition hover:-translate-y-0.5 hover:border-accent hover:shadow-md"
     >
-      <div className="pointer-events-none grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+      <div className="pointer-events-none grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-border bg-background/60 p-4">
         <GridCanvas title="input" grid={input} />
         <ArrowRight className="mt-4 size-4 text-muted-foreground" />
         <GridCanvas title="output" grid={output} shapes={shapes} />
       </div>
-      <p className="mt-4 font-mono text-[11px] uppercase tracking-widest text-accent">{card.topic}</p>
-      <h3 className="mt-1 text-lg font-semibold leading-snug">{card.title}</h3>
-      <p className="mt-1 text-sm text-muted-foreground">{card.ref}</p>
-      <p className="mt-auto flex items-center justify-between pt-3 font-mono text-xs text-muted-foreground">
-        {steps} steps
-        <span className="text-accent transition group-hover:translate-x-0.5">Open →</span>
-      </p>
+      <div className="flex flex-1 flex-col p-4">
+        <p className="font-mono text-[11px] uppercase tracking-widest text-accent">{card.topic}</p>
+        <h3 className="mt-1 text-lg font-semibold leading-snug">{card.title}</h3>
+        <p className="mb-4 mt-1 text-sm text-muted-foreground">{card.hook}</p>
+        <p className="mt-auto flex items-center justify-between border-t border-border pt-3 font-mono text-xs text-muted-foreground">
+          <span title={card.ref}>{card.chapter} · {steps} steps</span>
+          <span className="inline-flex items-center gap-1 text-accent">
+            Explore <ArrowUpRight className="size-3.5 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+          </span>
+        </p>
+      </div>
     </Link>
   );
 }

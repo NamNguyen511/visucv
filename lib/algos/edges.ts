@@ -72,6 +72,7 @@ export const edges: Algorithm = {
     topic: "Filtering",
     ref: "Birchfield, Ch. 12 — Differentiation and Edge Detection",
     lead: "Find thin, connected edges: smooth, measure the gradient, keep only its ridge tops, then link weak edges to strong ones.",
+    hook: "From gradients to thin, linked edges.",
   },
   explain: {
     ideas: [

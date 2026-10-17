@@ -16,18 +16,19 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
+  /* The Lovable redesign's palette: near-black with a green tint, teal accent. */
   :root {
-    --background: #111113;
-    --foreground: #ececee;
-    --card: #19191c;
-    --muted-foreground: #9a9aa3;
-    --border: #2b2b31;
+    --background: #0b0d0d;
+    --foreground: #e9eeec;
+    --card: #121615;
+    --muted-foreground: #8e9a97;
+    --border: #232a28;
     --accent: #2dd4bf;
-    --pending: #26262b;
+    --pending: #1f2524;
     --kernel: #f0b54f;
     --cursor: #ff7a45;
-    --highlight: #3a2f1a;
-    --dots: #232328;
+    --highlight: #10302b;
+    --dots: #161b1a;
     color-scheme: dark;
   }
 }

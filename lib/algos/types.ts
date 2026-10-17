@@ -54,8 +54,8 @@ export type Plot = {
 };
 
 export type Algorithm = {
-  /** lead: one sentence, ≤ 25 words, saying what the algorithm does. */
-  meta: { id: string; title: string; topic: string; ref: string; lead: string };
+  /** lead: one sentence, ≤ 25 words, saying what the algorithm does. hook: ≤ 8 words, for the home card. */
+  meta: { id: string; title: string; topic: string; ref: string; lead: string; hook: string };
   /** Shown below the demo. Budget enforced by lib/algos/explain.test.ts. */
   explain: {
     ideas: { term: string; text: string }[];

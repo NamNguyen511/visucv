@@ -80,6 +80,7 @@ export const transforms: Algorithm = {
     topic: "Geometry",
     ref: "Birchfield, Ch. 8 — Geometric Transformations",
     lead: "Move, rotate, scale or shear an image by sending every pixel through the same 2×2 matrix plus a shift.",
+    hook: "Move, rotate and shear with one matrix.",
   },
   explain: {
     ideas: [

@@ -54,6 +54,7 @@ export const momentsAlgo: Algorithm = {
     topic: "Shape",
     ref: "Birchfield, Ch. 5 — Image Moments · Ch. 6 — Eigenvectors of the Moment Covariance Matrix",
     lead: "Summarize a blob with a few sums over its pixels: its area, centre, spread, and the direction it points.",
+    hook: "Sum the pixels, get the shape's ellipse.",
   },
   explain: {
     ideas: [

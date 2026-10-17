@@ -70,6 +70,7 @@ export const distance: Algorithm = {
     topic: "Shape",
     ref: "Birchfield, Ch. 7 — Distance Measures",
     lead: "Give every foreground pixel its distance to the nearest background pixel, using just two sweeps over the image.",
+    hook: "How far is every pixel from the shape?",
   },
   explain: {
     ideas: [

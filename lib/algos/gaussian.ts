@@ -45,6 +45,7 @@ export const gaussian: Algorithm = {
     topic: "Filtering",
     ref: "Birchfield, Ch. 11 — Smoothing and Gaussian Pyramids",
     lead: "Blur an image with a bell-shaped weighted average, shown as a landscape where brightness is height.",
+    hook: "Watch noise flatten into smooth hills.",
   },
   explain: {
     ideas: [

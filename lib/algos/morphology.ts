@@ -67,6 +67,7 @@ export const morphology: Algorithm = {
     topic: "Binary images",
     ref: "Birchfield, Ch. 3 — Thresholding, Erosion, and Dilation",
     lead: "Slide a small shape B over a binary image to shrink it, grow it, or clean up its noise.",
+    hook: "Small neighborhoods. Big changes in shape.",
   },
   explain: {
     ideas: [

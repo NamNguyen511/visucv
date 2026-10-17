@@ -32,6 +32,7 @@ export const warping: Algorithm = {
     topic: "Geometry",
     ref: "Birchfield, Ch. 9 — Image Warping, Inverse Mapping, and Bilinear Interpolation",
     lead: "Warp an image without holes by asking where each output pixel came from, then blending its four source neighbours.",
+    hook: "Ask where each output pixel came from.",
   },
   explain: {
     ideas: [
