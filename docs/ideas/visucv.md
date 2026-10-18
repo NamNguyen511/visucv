@@ -62,7 +62,8 @@ in the same roadmap order:
 - Running user code / Pyodide — pseudocode chosen; saves ~10 MB and complexity.
 - Accounts / progress tracking — no users yet.
 - Deep-learning pages — prove the format on classical CV first.
-- Image upload / real photos — small grids are what make stepping readable.
+- Real photos on the step-through pages — small grids are what make stepping readable. (Photos, samples or
+  your own, live in the separate Photograph lab at `/photo`, which runs the filters without stepping.)
 - Pipeline playground and challenge mode — later layers on top of `run()`.
 - Post-MVP groups (features, 3-D, deep learning) — until the 12 classical pages ship.
 - Hough transform (§12.4) and Laplacian / LoG zero crossings (Ch. 13) — different algorithms from Canny; candidates for their own pages after the MVP.

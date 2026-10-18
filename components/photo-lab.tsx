@@ -56,6 +56,8 @@ const crop = (g: Grid, y: number, x: number, r: number): Grid => {
     }
   return out;
 };
+/** Frees "Your photo"'s blob URL once nothing will read it again (sample paths are left alone). */
+const forget = (src: string | null) => { if (src?.startsWith("blob:")) URL.revokeObjectURL(src); };
 const f3 = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(3));
 
 export function PhotoLab() {
@@ -68,13 +70,31 @@ export function PhotoLab() {
   const [split, setSplit] = useState(50);
   const [px, setPx] = useState<[number, number]>([0, 0]);
   const [pinned, setPinned] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null); // name of a file that wouldn't decode
+  const fileName = useRef("that file"), lastGood = useRef<string | null>(null);
   const before = useRef<HTMLCanvasElement>(null), after = useRef<HTMLCanvasElement>(null);
+  const marker = useRef<HTMLSpanElement>(null), size = useRef<[number, number] | null>(null);
 
   useEffect(() => {
     let live = true;
-    load(src, width).then(p => { if (live) { setPhoto(p); setPx([Math.floor(p.h / 3), Math.floor(p.w / 2)]); } }).catch(() => {});
+    load(src, width).then(p => {
+      if (!live) return;
+      // Same spot in the new image (resolution or photo change), so a pinned pixel stays put.
+      const old = size.current;
+      setPx(([a, b]) => old ? [Math.floor(((a + 0.5) * p.h) / old[0]), Math.floor(((b + 0.5) * p.w) / old[1])] : [Math.floor(p.h / 3), Math.floor(p.w / 2)]);
+      size.current = [p.h, p.w];
+      if (lastGood.current !== src) forget(lastGood.current); // a resolution change re-reads the same file
+      lastGood.current = src;
+      setPhoto(p);
+    }).catch(() => {
+      if (!live) return;
+      forget(src);
+      setFailed(fileName.current);
+      if (lastGood.current) setSrc(lastGood.current); // back to the last photo that worked
+    });
     return () => { live = false; };
   }, [src, width]);
+  useEffect(() => () => forget(lastGood.current), []);
 
   const gray = useMemo(() => (photo ? toGray(photo.rgba, photo.w, photo.h) : null), [photo]);
   const id: FilterId = view === "color" ? "gray" : view;
@@ -106,6 +126,7 @@ export function PhotoLab() {
     e.preventDefault();
     setPinned(true);
     setPx(([a, b]) => [Math.min(photo.h - 1, Math.max(0, a + d[0])), Math.min(photo.w - 1, Math.max(0, b + d[1]))]);
+    requestAnimationFrame(() => marker.current?.scrollIntoView({ block: "nearest", inline: "nearest" })); // zoomed views
   };
   const chip = (on: boolean) => `rounded-lg px-3 py-1.5 text-sm transition active:translate-y-px ${on ? "bg-highlight font-medium text-accent" : "text-muted-foreground hover:text-foreground"}`;
   const cssW = zoom ? photo.w * zoom : undefined;
@@ -128,18 +149,23 @@ export function PhotoLab() {
       <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Photo</span>
         {SAMPLES.map(s => (
-          <button key={s.src} aria-pressed={src === s.src} onClick={() => setSrc(s.src)}
+          <button key={s.src} aria-pressed={src === s.src} onClick={() => { setSrc(s.src); setFailed(null); }}
                   className={`flex items-center gap-2 rounded-lg border px-2 py-1 transition active:translate-y-px ${src === s.src ? "border-accent" : "border-border hover:border-accent"}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={s.src} alt="" className="size-7 rounded object-cover" /> {s.label}
           </button>
         ))}
-        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 transition hover:border-accent">
+        <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 transition hover:border-accent has-focus-visible:ring-2 has-focus-visible:ring-accent">
           <ImagePlus aria-hidden className="size-4" /> Your photo
           <input type="file" accept="image/*" className="sr-only" aria-label="Use your own photo (stays in your browser)"
-                 onChange={e => { const file = e.target.files?.[0]; if (file) setSrc(URL.createObjectURL(file)); }} />
+                 onChange={e => {
+                   const file = e.target.files?.[0];
+                   e.target.value = ""; // picking the same file again still fires onChange
+                   if (file) { fileName.current = file.name; setFailed(null); setSrc(URL.createObjectURL(file)); }
+                 }} />
         </label>
         <span className="text-xs text-muted-foreground">stays in your browser</span>
+        {failed && <span role="alert" className="text-sm font-medium text-foreground">Couldn&apos;t read {failed} as an image.</span>}
       </div>
 
       <div className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
@@ -148,15 +174,16 @@ export function PhotoLab() {
             <span>{photo.w} × {photo.h} pixels · {view === "color" ? "colour" : meta.label}{compare ? " · left: original, right: filtered" : ""}</span>
             <span>{pinned ? "pinned · click to unpin" : "hover to inspect · click to pin"}</span>
           </div>
-          <div className="max-h-[70vh] overflow-auto rounded-xl ring-1 ring-border">
-            <div tabIndex={0} onKeyDown={keys} aria-label="Photograph: arrow keys move the inspected pixel"
-                 className="relative cursor-crosshair outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                 style={{ width: cssW ?? "100%" }}
+          {/* The scroll box takes focus: a ring on the inner image would be clipped by overflow-auto. */}
+          <div tabIndex={0} onKeyDown={keys} aria-label="Photograph: arrow keys move the inspected pixel"
+               className="max-h-[70vh] overflow-auto rounded-xl ring-1 ring-border outline-none focus-visible:ring-2 focus-visible:ring-accent">
+            <div className="relative mx-auto cursor-crosshair"
+                 style={{ width: cssW ?? `min(100%, ${(70 * photo.w) / photo.h}vh)` /* Fit: whole photo, no scrolling */ }}
                  onPointerMove={e => pick(e, false)} onClick={e => pick(e as unknown as React.PointerEvent<HTMLDivElement>, true)}>
               <canvas ref={before} className="pixels block w-full" aria-hidden={!compare} />
               <canvas ref={after} className="pixels absolute inset-0 block w-full" role="img" aria-label={`${meta.label} of the photo`}
                       style={compare ? { clipPath: `inset(0 0 0 ${split}%)` } : undefined} />
-              <span aria-hidden className="pointer-events-none absolute border-2 border-cursor"
+              <span ref={marker} aria-hidden className="pointer-events-none absolute border-2 border-cursor"
                     style={{ left: `${(x / photo.w) * 100}%`, top: `${(y / photo.h) * 100}%`, width: `max(${100 / photo.w}%, 6px)`, height: `max(${100 / photo.h}%, 6px)` }} />
             </div>
           </div>
@@ -207,12 +234,13 @@ export function PhotoLab() {
 
           <div className="mt-4 grid grid-cols-2 gap-3">
             <GridCanvas title="gray, 15 × 15" grid={crop(gray, y, x, 7)} read={[[6, 6], [6, 7], [6, 8], [7, 6], [7, 8], [8, 6], [8, 7], [8, 8]]} write={[[7, 7]]} />
-            <GridCanvas title={view === "color" ? "gray (no filter)" : `${meta.label}, 15 × 15`} grid={crop(filtered.shown, y, x, 7)} write={[[7, 7]]} />
+            <GridCanvas title={view === "color" ? "gray (no filter)" : `${meta.label}, 15 × 15`} grid={crop(filtered.shown, y, x, 7)} write={[[7, 7]]}
+                        shapes={view === "corners" ? filtered.corners!.filter(([cy, cx]) => Math.abs(cy - y) <= 7 && Math.abs(cx - x) <= 7).map(([cy, cx]) => ({ kind: "point" as const, x: cx - x + 7, y: cy - y + 7 })) : undefined} />
           </div>
 
           {meta.page && view !== "color" && (
             <Link href={`/algo/${meta.page}`} className="mt-4 inline-flex items-center gap-1 text-sm text-accent hover:underline">
-              See {meta.label.toLowerCase()} step by step <ArrowUpRight aria-hidden className="size-4" />
+              {meta.label}, step by step <ArrowUpRight aria-hidden className="size-4" />
             </Link>
           )}
         </aside>

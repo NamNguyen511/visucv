@@ -56,7 +56,9 @@ export function applyFilter(I: Grid, id: FilterId): Filtered {
   }
   if (id === "corners") {
     const T = structureTensor(I, 1), S = Float64Array.from({ length: I.h * I.w }, (_, k) => score(T, k, "Harris"));
-    return { shown: I, raw: S, corners: detect(S, I.h, I.w), tensor: T };
+    // Plateau centres can be fractional (detect); the lab marks and counts whole pixels.
+    const corners = detect(S, I.h, I.w).map(([y, x]): Cell => [Math.round(y), Math.round(x)]);
+    return { shown: I, raw: S, corners, tensor: T };
   }
   return { shown: I, raw: I.data };
 }

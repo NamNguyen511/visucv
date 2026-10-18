@@ -45,4 +45,12 @@ describe("photograph lab", () => {
     for (const [cy, cx] of [[101, 151], [101, 249], [299, 151], [299, 249]])
       expect(c.some(([y, x]) => Math.abs(y - cy) <= 2 && Math.abs(x - cx) <= 2), `${cx},${cy}`).toBe(true);
   });
+
+  it("Harris corners are whole pixel cells (a 2×2 blob's plateau centre is fractional)", () => {
+    const g = grid(40, 40);
+    for (const k of [20 * 40 + 20, 20 * 40 + 21, 21 * 40 + 20, 21 * 40 + 21]) g.data[k] = 1;
+    const c = applyFilter(g, "corners").corners!;
+    expect(c.length).toBeGreaterThan(0);
+    for (const [y, x] of c) expect(Number.isInteger(y) && Number.isInteger(x), `${y},${x}`).toBe(true);
+  });
 });

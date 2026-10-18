@@ -172,6 +172,56 @@ test.describe("home", () => {
     expect(errors).toEqual([]);
   });
 
+  test("photograph lab: Fit fits, focus rings show, pins survive a resolution change, bad files say so and your photo still reloads", async ({ page }) => {
+    await page.goto("/photo");
+    await expect(page.getByRole("heading", { name: "Inside one pixel" })).toBeVisible();
+    await page.getByRole("button", { name: "Camera" }).click(); // square photo: the tallest sample
+    const view = page.getByLabel(/arrow keys move the inspected pixel/);
+    const overflow = () => page.getByRole("img", { name: / of the photo$/ }).evaluate(el => {
+      let a = el.parentElement!;
+      while (getComputedStyle(a).overflow === "visible") a = a.parentElement!; // the photo's scroll box
+      return Math.max(a.scrollHeight - a.clientHeight, a.scrollWidth - a.clientWidth);
+    });
+    await expect.poll(overflow).toBeLessThanOrEqual(1); // "Fit" shows the whole photo
+    // The keyboard focus ring must not be clipped by any scrolling ancestor.
+    await view.focus();
+    const clipped = await view.evaluate(el => {
+      const r = el.getBoundingClientRect();
+      for (let a = el.parentElement; a; a = a.parentElement) {
+        if (getComputedStyle(a).overflow === "visible") continue;
+        const b = a.getBoundingClientRect();
+        if (r.left - 2 < b.left || r.top - 2 < b.top || r.right + 2 > b.right || r.bottom + 2 > b.bottom) return true;
+      }
+      return getComputedStyle(el).boxShadow === "none";
+    });
+    expect(clipped).toBe(false);
+    // The hidden file input's label shows keyboard focus.
+    await page.getByRole("button", { name: "Camera" }).focus();
+    await page.keyboard.press("Tab");
+    await expect(page.getByLabel(/Use your own photo/)).toBeFocused();
+    expect(await page.locator("label", { hasText: "Your photo" }).evaluate(el => getComputedStyle(el).boxShadow)).not.toBe("none");
+    // Pin a pixel, then double the resolution: the same spot stays pinned, at doubled coordinates.
+    const where = page.getByText(/^\(x, y\) = /);
+    const xy = async () => (await where.textContent())!.match(/\d+/g)!.map(Number);
+    await page.locator("select").selectOption("192");
+    await view.press("ArrowRight");
+    const [x, y] = await xy();
+    await page.locator("select").selectOption("384");
+    await expect(page.getByText(/^384 × /)).toBeVisible();
+    const [x2, y2] = await xy();
+    expect(Math.abs(x2 - 2 * x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(y2 - 2 * y)).toBeLessThanOrEqual(1);
+    await page.getByRole("button", { name: "Harris corners", exact: true }).click();
+    await expect(page.getByRole("link", { name: /^Harris corners, step by step/ })).toBeVisible();
+    // Your own photo, then a bad file: the lab falls back to your photo and can still re-read it.
+    await page.getByLabel(/Use your own photo/).setInputFiles("public/photos/chelsea.jpg");
+    await expect(page.getByText(/^384 × 255 /)).toBeVisible();
+    await page.getByLabel(/Use your own photo/).setInputFiles({ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("not an image") });
+    await expect(page.getByRole("alert").filter({ hasText: "as an image" })).toContainText("notes.txt");
+    await page.locator("select").selectOption("96");
+    await expect(page.getByText(/^96 × 64 /)).toBeVisible();
+  });
+
   test("reduced motion shows a still, finished demo", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
