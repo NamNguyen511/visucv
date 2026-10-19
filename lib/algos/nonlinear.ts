@@ -106,7 +106,7 @@ export const nonlinear: Algorithm = {
   ],
   paintable: true,
   challenge: {
-    prompt: "On the noisy step edge, bring the error below 4.5 gray levels (the Gaussian manages 7.9).",
+    prompt: "On the noisy step edge, bring the error below 4.5 gray levels (the Gaussian stays above 7).",
     hint: "The median keeps edges but leaves some noise. Which filter averages only similar neighbours, and how wide?",
     solved: (p, out) => p.image === "noisy step edge" && mae(out, cleanImage("noisy step edge")) < 4.5,
   },

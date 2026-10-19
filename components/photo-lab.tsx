@@ -228,7 +228,7 @@ export function PhotoLab() {
 
           {info.extra.length > 0 && (
             <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-mono text-sm">
-              {info.extra.map(([a, b]) => <div key={a} className="contents"><dt className="text-xs uppercase tracking-wider text-muted-foreground">{a}</dt><dd className="break-words">{b}</dd></div>)}
+              {info.extra.map(([a, b]) => <div key={a} className="contents"><dt className="text-xs tracking-wider text-muted-foreground">{a}</dt><dd className="break-words">{b}</dd></div>)}
             </dl>
           )}
 

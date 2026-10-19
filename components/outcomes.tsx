@@ -3,7 +3,8 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { type CardData, toGrid } from "@/lib/algos/card";
+import type { CardData } from "@/lib/algos/card";
+import { toGrid } from "@/lib/algos/types";
 import { GridCanvas } from "./grid-canvas";
 
 function Pair({ title, card }: { title: string; card: CardData }) {

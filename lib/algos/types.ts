@@ -83,3 +83,8 @@ export const defaultParams = (a: Algorithm): Params => Object.fromEntries(a.para
 
 export const grid = (h: number, w: number, fill = 0): Grid => ({ h, w, data: new Float32Array(h * w).fill(fill) });
 export const clone = (g: Grid): Grid => ({ ...g, data: g.data.slice() });
+
+/** A Grid as plain JSON-friendly data (home-card data crosses from server to client this way). Lives here,
+ *  not in card.ts, so client components can rebuild grids without importing the whole registry. */
+export type GridData = { h: number; w: number; data: number[]; labels?: boolean };
+export const toGrid = (g: GridData): Grid => ({ h: g.h, w: g.w, data: Float32Array.from(g.data), labels: g.labels });

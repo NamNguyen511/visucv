@@ -6,6 +6,11 @@ import { ContinueLink } from "@/components/progress";
 import { Outcomes } from "@/components/outcomes";
 import { topics } from "@/lib/algos";
 import { cardData } from "@/lib/algos/card";
+import { og } from "@/lib/og";
+
+export const metadata = {
+  openGraph: og("VisuCV — computer vision, step by step", "Learn computer vision by watching it run: step-through visualizations of classic algorithms."),
+};
 
 export default function Home() {
   const cards = topics.flatMap(t => t.items).filter(i => i.id).map(i => cardData(i.id!));
@@ -47,7 +52,7 @@ export default function Home() {
 
       <Link href="/photo" className="group mt-6 flex items-center gap-5 rounded-2xl border border-border bg-card p-4 transition hover:border-accent">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/photos/chelsea.jpg" alt="" className="h-20 w-32 rounded-lg object-cover [image-rendering:pixelated]" />
+        <img src="/photos/chelsea.jpg" alt="" loading="lazy" className="h-20 w-32 rounded-lg object-cover [image-rendering:pixelated]" />
         <div className="min-w-0">
           <p className="font-mono text-xs uppercase tracking-widest text-accent">Photograph lab</p>
           <p className="mt-1 font-semibold">Try every filter on a real photo, then zoom into a single pixel.</p>

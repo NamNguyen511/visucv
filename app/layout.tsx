@@ -7,7 +7,13 @@ import "./globals.css";
 const sans = Space_Grotesk({ variable: "--font-sans", subsets: ["latin"] });
 const mono = JetBrains_Mono({ variable: "--font-mono", subsets: ["latin"] });
 
+// Absolute URLs for share previews: Vercel's production domain when building there.
+const site = process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "https://visucv.vercel.app";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(site),
+  openGraph: { type: "website", siteName: "VisuCV" },
+  twitter: { card: "summary_large_image" },
   title: { default: "VisuCV — computer vision, step by step", template: "%s · VisuCV" },
   description: "Interactive, step-through visualizations of computer vision algorithms with highlighted pseudocode.",
 };

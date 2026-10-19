@@ -16,6 +16,7 @@ export function Collection({ cards, soon, topics }: { cards: CardData[]; soon: S
   const [tab, setTab] = useState(ALL);
   const [q, setQ] = useState("");
   const { visited } = useProgress();
+  const seenLive = visited.filter(v => cards.some(c => c.id === v)).length; // stored ids may be stale
   const query = norm(q);
   const hit = (...fields: string[]) => !query || norm(fields.join(" ")).includes(query);
   const shown = tab === SOON ? [] : cards.filter(c => (tab === ALL || c.topic === tab) && hit(c.title, c.hook, c.topic, c.ref));
@@ -28,7 +29,7 @@ export function Collection({ cards, soon, topics }: { cards: CardData[]; soon: S
       <div className="mt-1 flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
           Explore algorithms <span className="font-mono text-sm font-normal text-muted-foreground">/ {cards.length}</span>
-          {visited.length > 0 && <span className="ml-3 font-mono text-sm font-normal text-accent">{visited.filter(v => cards.some(c => c.id === v)).length} visited</span>}
+          {seenLive > 0 && <span className="ml-3 font-mono text-sm font-normal text-accent">{seenLive} visited</span>}
         </h2>
         <p className="text-muted-foreground">From individual pixels to bigger ideas.</p>
       </div>

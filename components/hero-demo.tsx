@@ -19,19 +19,22 @@ const btn = "inline-flex size-9 items-center justify-center rounded-lg border bo
 // Only these four modules ship with the home page, not the whole registry.
 const algorithms: Record<string, Algorithm> = { morphology, components, distance, edges };
 const sample = () => morphology.sampleInput(defaultParams(morphology));
+const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 type Chip = {
   label: string; id: string; params: Record<string, string | number>; stepped: boolean;
   code: string[]; say: (out: Grid, s?: Step) => string;
 };
-const lit = (s?: Step) => String(s?.vars["cells of B on 1"] ?? "").split(" / ").map(Number);
+const lit = (s: Step) => String(s.vars["cells of B on 1"]).split(" / ").map(Number);
+const white = (g: Grid) => g.data.reduce((n, v) => n + (v > 0 ? 1 : 0), 0);
+const pixels = (g: Grid) => { const n = white(g); return `${n} pixel${n === 1 ? "" : "s"}`; };
 const CHIPS: Chip[] = [
   { label: "Erosion", id: "morphology", params: { op: "erode" }, stepped: true,
     code: ["for y, x in pixels(A):", "    window = A[y-1:y+2, x-1:x+2]", "    out[y, x] = 1 if window.all() else 0"],
-    say: (_, s) => { const [n, of] = lit(s); return n === of ? `Survives: all ${of} cells under the kernel are lit.` : `Erased: ${n ? `only ${n}` : "none"} of the ${of} cells under the kernel ${n === 1 ? "is" : "are"} lit, so it doesn't fit.`; } },
+    say: (out, s) => { if (!s) return `Finished: the whole kernel fits at ${pixels(out)}, and only those survive.`; const [n, of] = lit(s); return n === of ? `Survives: all ${of} cells under the kernel are lit.` : `Erased: ${n ? `only ${n}` : "none"} of the ${of} cells under the kernel ${n === 1 ? "is" : "are"} lit, so it doesn't fit.`; } },
   { label: "Dilation", id: "morphology", params: { op: "dilate" }, stepped: true,
     code: ["for y, x in pixels(A):", "    window = A[y-1:y+2, x-1:x+2]", "    out[y, x] = 1 if window.any() else 0"],
-    say: (_, s) => { const [n] = lit(s); return n ? `Lit: the kernel touches ${n} white cell${n > 1 ? "s" : ""}.` : "Stays dark: no white cell under the kernel."; } },
+    say: (out, s) => { if (!s) return `Finished: the kernel touches white at ${pixels(out)}, and all of them are lit.`; const [n] = lit(s); return n ? `Lit: the kernel touches ${n} white cell${n > 1 ? "s" : ""}.` : "Stays dark: no white cell under the kernel."; } },
   { label: "Components", id: "components", params: { op: "label all blobs", conn: 8 }, stepped: false,
     code: ["for p in raster_order(A):", "    if A[p] == 1 and not label[p]:", "        k += 1; flood_fill(A, p, k)"],
     say: out => { const k = new Set([...out.data].filter(v => v > 0)).size; return `${k} separate blob${k === 1 ? "" : "s"}, each with its own label.`; } },
@@ -40,7 +43,7 @@ const CHIPS: Chip[] = [
     say: () => "Brighter = farther from the background: the shapes' skeletons light up." },
   { label: "Edges", id: "edges", params: { noise: 0.02 }, stepped: false,
     code: ["I = gaussian_blur(I)", "mag, theta = polar(*sobel(I))", "edges = grow(strong, into=weak)"],
-    say: out => `${[...out.data].filter(v => v > 0).length} edge pixels trace the outlines.` },
+    say: out => `${white(out)} edge pixels trace the outlines.` },
 ];
 
 export function HeroDemo() {
@@ -56,7 +59,7 @@ export function HeroDemo() {
   const playing = mode === "play";
 
   useEffect(() => {
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) setMode("done");
+    if (reduced()) setMode("done");
   }, []);
 
   useEffect(() => {
@@ -94,7 +97,7 @@ export function HeroDemo() {
       <div className="p-4">
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Algorithm">
           {CHIPS.map((ch, k) => (
-            <button key={ch.label} aria-pressed={k === chip} onClick={() => { setChip(k); setIdx(0); if (mode === "done" && CHIPS[k].stepped) setMode("play"); }}
+            <button key={ch.label} aria-pressed={k === chip} onClick={() => { setChip(k); setIdx(0); if (mode === "done" && CHIPS[k].stepped && !reduced()) setMode("play"); }}
                     className={`rounded-full border px-3 py-1 text-sm transition active:translate-y-px ${k === chip ? "border-accent bg-highlight text-accent" : "border-border text-muted-foreground hover:text-foreground"}`}>
               {ch.label}
             </button>
@@ -111,7 +114,8 @@ export function HeroDemo() {
         <pre className="mt-4 overflow-hidden rounded-lg bg-highlight px-3 py-2 font-mono text-[12px] leading-5 [font-variant-ligatures:none]">
           {c.code.map((l, n) => <div key={n} className={`overflow-hidden text-ellipsis whitespace-pre ${n === c.code.length - 1 ? "text-accent" : ""}`}>{l}</div>)}
         </pre>
-        <p className="mt-3 min-h-6 text-sm" aria-live="polite">{c.say(out, f)}</p>
+        {/* Silent while autoplaying: it would announce 8 captions a second. */}
+        <p className="mt-3 min-h-6 text-sm" aria-live={playing ? "off" : "polite"}>{c.say(out, f)}</p>
         <div className="mt-3 flex items-center gap-2">
           <button className={`${btn} !border-accent !bg-accent text-background`} disabled={!c.stepped}
                   aria-label={playing ? "Pause demo" : "Play demo"}

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { algorithms } from ".";
+import { gaussian } from "./gaussian";
+import { cleanImage, mae } from "./nonlinear";
 import { type Params, defaultParams } from "./types";
 
 // The settings that solve each challenge, and near misses that must not (measured on the samples).
@@ -31,4 +33,15 @@ describe("try-it challenges", () => {
       expect(solved(id, solve)).toBe(true);
       for (const m of miss) expect(solved(id, m), JSON.stringify(m)).toBe(false);
     });
+});
+
+// The nonlinear prompt quotes the Gaussian's error: it must hold for every window (3×3 gave 7.1, not the 7.9 it said).
+describe("nonlinear prompt", () => {
+  it("the comparison Gaussian stays above 7 levels on the noisy step edge", () => {
+    expect(algorithms.nonlinear.challenge!.prompt).toContain("stays above 7");
+    for (const sigma of [1, 1.5]) {
+      const I = algorithms.nonlinear.sampleInput({ image: "noisy step edge" });
+      expect(mae(gaussian.run(I, { sigma }), cleanImage("noisy step edge"))).toBeGreaterThan(7);
+    }
+  });
 });

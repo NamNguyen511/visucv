@@ -20,7 +20,7 @@ export function useProgress() {
 /** "Continue where you left off", shown only to returning visitors. */
 export function ContinueLink({ titles }: { titles: Record<string, string> }) {
   const { last } = useProgress();
-  if (!last || !titles[last]) return null;
+  if (!last || !Object.hasOwn(titles, last)) return null; // a removed page, or a key like "__proto__"
   return (
     <Link href={`/algo/${last}`} title={titles[last]} className="inline-flex max-w-full items-center gap-2 rounded-xl border border-border px-4 py-2.5 font-medium transition hover:border-accent active:translate-y-px">
       <span className="text-muted-foreground">Continue</span> <span className="max-w-[16rem] truncate">{titles[last]}</span> <ArrowRight className="size-4 shrink-0" />

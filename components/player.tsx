@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { Check, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, SkipBack, SkipForward, Target } from "lucide-react";
 import { algorithms } from "@/lib/algos";
-import { type Params, clone, defaultParams } from "@/lib/algos/types";
+import { type Params, type Step, clone, defaultParams } from "@/lib/algos/types";
 import { stepsDue } from "@/lib/playback";
 import { GridCanvas } from "./grid-canvas";
 import { Plot } from "./plot";
@@ -26,6 +26,13 @@ function wide(all: [string, unknown][], n: number) {
   for (let j = n; j >= 0 && !long(all[j][1]); j--) run++;
   const nextIsShort = n + 1 < all.length && !long(all[n + 1][1]);
   return run % 2 === 1 && !nextIsShort;
+}
+
+// A panel's overlays. Returns the step's own array when one panel holds them all, and undefined when a
+// panel has none, so panels whose pixels didn't change keep the same props and skip redrawing.
+function panelShapes(f: Step, k: number) {
+  const mine = f.shapes?.filter(s => (s.panel ?? f.dst) === k);
+  return !mine?.length ? undefined : mine.length === f.shapes!.length ? f.shapes : mine;
 }
 
 const btn =
@@ -75,7 +82,9 @@ export function Player({ id }: { id: string }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement).closest("select, input, button")) return;
+      // Form controls use these keys themselves; buttons, links and the hint only use space.
+      const t = e.target as HTMLElement;
+      if (t.closest("select, input") || (e.key === " " && t.closest("button, a, summary"))) return;
       if (e.key === "ArrowRight") { setPlaying(false); go(i + 1); }
       else if (e.key === "ArrowLeft") { setPlaying(false); go(i - 1); }
       else if (e.key === " ") { e.preventDefault(); togglePlay(); }
@@ -135,7 +144,7 @@ export function Player({ id }: { id: string }) {
               grid={g}
               read={k === f.src ? f.read : undefined}
               write={k === f.dst ? f.write : undefined}
-              shapes={f.shapes?.filter(s => (s.panel ?? f.dst) === k)}
+              shapes={panelShapes(f, k)}
               onPaint={algo.paintable && k === 0 ? paint : undefined}
               animate
               active={k === f.dst && f.write.length > 0}
@@ -228,7 +237,7 @@ export function Player({ id }: { id: string }) {
         <dl className="mx-4 mt-3 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border">
           {Object.entries(f.vars).map(([k, v], n, all) => (
             <div key={k} className={`bg-card px-3 py-2 ${wide(all, n) ? "col-span-2" : ""}`}>
-              <dt className="font-mono text-[11px] uppercase tracking-wider text-muted-foreground">{k}</dt>
+              <dt className="font-mono text-[11px] tracking-wider text-muted-foreground">{k}</dt>
               <dd className="mt-0.5 break-words font-mono text-sm">{v}</dd>
             </div>
           ))}

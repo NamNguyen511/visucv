@@ -6,7 +6,9 @@ export type Progress = { visited: string[]; last?: string };
 export function readProgress(): Progress {
   try {
     const p = JSON.parse(localStorage.getItem(KEY) ?? "null");
-    return p && Array.isArray(p.visited) ? p : { visited: [] };
+    // Stored data may be hand-edited or stale: keep only string ids.
+    const visited = Array.isArray(p?.visited) ? p.visited.filter((v: unknown) => typeof v === "string") : [];
+    return typeof p?.last === "string" ? { visited, last: p.last } : { visited };
   } catch {
     return { visited: [] };
   }

@@ -24,6 +24,7 @@ test.describe("home", () => {
     // The hero starts ~160 ms after load (under 2 s even at 12× CPU throttling), but under the
     // suite's parallel load an occasional page took over 5 s, before and after the canvas changes.
     await expect(demo).not.toHaveAttribute("data-step", first!, { timeout: 15_000 });
+    await expect(demo.locator("p[aria-live]")).toHaveAttribute("aria-live", "off"); // no announcements 8× a second
     for (const id of Object.keys(algorithms))
       await expect(page.locator(`#algorithms a[href="/algo/${id}"]`).filter({ hasText: algorithms[id].meta.title })).toHaveCount(1);
     const [scroll, inner] = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
@@ -99,6 +100,63 @@ test.describe("home", () => {
     }
   });
 
+  // The home page runs only the hero's four modules; card thumbnails are precomputed. Importing a
+  // helper from lib/algos/card once pulled the whole registry (every page's code) into the home bundle.
+  test("home page ships only the hero's algorithm modules", async ({ page, request }) => {
+    await page.goto("/");
+    const srcs = await page.locator("script[src]").evaluateAll(els => els.map(e => (e as HTMLScriptElement).src));
+    const js = (await Promise.all(srcs.map(async s => (await request.get(s)).text()))).join("\n");
+    expect(js.includes("def erode(A, B):")).toBe(true);
+    for (const line of ["def otsu(I):", "def frequency_filter(I, mask):", "def corners(I, k=0.04):", "def moments(I):"]) expect(js.includes(line), line).toBe(false);
+  });
+
+  // Per-frame work: a new (empty) overlay array per panel per render redrew every panel on every step,
+  // which made the edges page's play test the slowest 2-D one (~15 s) and time out under load.
+  test("stepping redraws only the panels that change", async ({ page }) => {
+    await page.goto("/algo/edges");
+    await page.getByLabel("Next step").click();
+    await page.getByLabel("Next step").click(); // gradient arrows are on from here
+    await page.waitForTimeout(300); // let the last overlay glide (≤ 120 ms) settle before counting
+    await page.evaluate(() => {
+      const w = window as unknown as { draws: Record<string, number> };
+      w.draws = {};
+      const orig = CanvasRenderingContext2D.prototype.drawImage;
+      CanvasRenderingContext2D.prototype.drawImage = function (this: CanvasRenderingContext2D, ...a: unknown[]) {
+        const k = this.canvas.getAttribute("aria-label") ?? "?";
+        w.draws[k] = (w.draws[k] ?? 0) + 1;
+        return (orig as (...x: unknown[]) => void).apply(this, a);
+      } as typeof orig;
+    });
+    for (let k = 0; k < 4; k++) await page.getByLabel("Next step").click();
+    const draws = await page.evaluate(() => (window as unknown as { draws: Record<string, number> }).draws);
+    expect(draws["I grid"] ?? 0).toBe(0);
+    expect(draws["blurred (σ = 1) grid"] ?? 0).toBe(0);
+    expect(draws["thinned (non-max) grid"]).toBeGreaterThan(0); // the panel being written does redraw
+  });
+
+  // Regression: the arrow keys were ignored whenever a button had focus, i.e. right after any click on the player.
+  test("arrow keys still step after clicking a player button", async ({ page }) => {
+    await page.goto("/algo/morphology");
+    const step = page.getByRole("slider", { name: "Step" });
+    await page.getByLabel("Next step").click();
+    await expect(step).toHaveValue("1");
+    await page.keyboard.press("ArrowRight");
+    await expect(step).toHaveValue("2");
+    await page.keyboard.press("ArrowLeft");
+    await expect(step).toHaveValue("1");
+  });
+
+  // Readout labels are math symbols: an uppercase style turned σ into Σ (a sum), μ into M and t into T.
+  test("readout labels keep their case", async ({ page }) => {
+    await page.goto("/algo/otsu");
+    await page.getByLabel("Next step").click();
+    const label = (t: string) => page.locator("dt").filter({ hasText: t }).first();
+    for (const t of ["σ²_B(t)", "μ₀ / μ₁", "ω₀ / ω₁"]) expect(await label(t).innerText()).toBe(t);
+    await page.goto("/photo");
+    await page.getByRole("button", { name: "Harris corners", exact: true }).click();
+    expect(await label("λ₁, λ₂").innerText()).toBe("λ₁, λ₂");
+  });
+
   test("hero: drawing changes the output, and every chip shows a different result", async ({ page }) => {
     await page.goto("/");
     const hero = page.locator("[data-step]");
@@ -120,6 +178,30 @@ test.describe("home", () => {
       if (chip === "Erosion" || chip === "Dilation") await page.getByRole("button", { name: /Pause demo|Play demo/ }).first().isVisible();
       await expect.poll(async () => { const d = await snap(); return seen.has(d) ? "same" : (seen.add(d), "new"); }, { message: chip }).toBe("new");
     }
+  });
+
+  // Prefetching the home page used to preload its Photograph-lab photo on every other page
+  // (a wasted download and a console warning): React hints eager <img>s in server components.
+  test("other pages don't download the home page's photo", async ({ page }) => {
+    const photos: string[] = [];
+    page.on("request", r => { if (r.url().includes("/photos/")) photos.push(r.url()); });
+    await page.goto("/algo/morphology", { waitUntil: "networkidle" });
+    await page.waitForTimeout(1000);
+    expect(photos).toEqual([]);
+  });
+
+  // Stale or hand-edited progress (a removed page, "__proto__") crashed the home page or showed "0 visited".
+  test("odd stored progress is ignored", async ({ page }) => {
+    const errors: string[] = [];
+    page.on("pageerror", e => errors.push(e.message));
+    await page.goto("/");
+    await page.evaluate(() => localStorage.setItem("visucv:progress", '{"visited":["old-page"],"last":"__proto__"}'));
+    await page.reload();
+    await expect(page.getByRole("heading", { name: /Explore algorithms/ })).toBeVisible();
+    await page.waitForLoadState("networkidle"); // progress is read after hydration
+    await expect(page.getByText(/\d+ visited/)).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /^Continue/ })).toHaveCount(0);
+    expect(errors).toEqual([]);
   });
 
   test("progress memory: visited stops get a check and Continue appears", async ({ page }) => {
@@ -222,6 +304,21 @@ test.describe("home", () => {
     await expect(page.getByText(/^96 × 64 /)).toBeVisible();
   });
 
+  // Launch checks: a styled 404, and every kind of page has the icon and an absolute share image.
+  test("404 page, icon and share previews", async ({ page }) => {
+    const res = await page.goto("/no-such-page");
+    expect(res!.status()).toBe(404);
+    await expect(page.getByRole("heading", { name: /isn.t in the image/ })).toBeVisible();
+    await expect(page).toHaveTitle("Page not found · VisuCV");
+    await expect(page.getByRole("link", { name: /Back to the start/ })).toHaveAttribute("href", "/");
+    for (const path of ["/", "/algo/edges", "/photo"]) {
+      await page.goto(path);
+      await expect(page.locator('link[rel="icon"]'), path).toHaveAttribute("href", /icon\.svg/);
+      await expect(page.locator('meta[property="og:image"]'), path).toHaveAttribute("content", /^https:\/\/.+\/opengraph-image\.png/);
+      await expect(page.locator('meta[property="og:title"]'), path).toHaveAttribute("content", /VisuCV/);
+    }
+  });
+
   test("reduced motion shows a still, finished demo", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
@@ -230,6 +327,16 @@ test.describe("home", () => {
     const still = await demo.getAttribute("data-step");
     await page.waitForTimeout(400);
     await expect(demo).toHaveAttribute("data-step", still!);
+    // The finished result gets a caption about the whole output (it used to read "none of the undefined
+    // cells"), and switching chips must not start the animation.
+    const say = demo.locator("p[aria-live]");
+    await expect(say).toContainText(/survive/);
+    for (const chip of ["Components", "Dilation"]) {
+      await page.getByRole("button", { name: chip, exact: true }).click();
+      await expect(demo).toHaveAttribute("data-step", "done");
+    }
+    await expect(say).toContainText(/lit/);
+    await expect(say).not.toContainText(/undefined|no white cell/);
   });
 });
 
@@ -246,7 +353,8 @@ for (const id of Object.keys(algorithms)) {
         await page.waitForTimeout(200);
         await page.getByRole("button", { name: "Pause" }).click();
       }
-      await expect(page.locator("span.font-mono").last()).not.toHaveText(/^1 \//);
+      // The step slider, not a markup-based locator: `span.font-mono` `.last()` had become the "Next" link label.
+      await expect(page.getByRole("slider", { name: "Step" })).not.toHaveValue("0");
       expect(errors).toEqual([]);
     });
 

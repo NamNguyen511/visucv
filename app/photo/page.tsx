@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PhotoLab } from "@/components/photo-lab";
+import { og } from "@/lib/og";
 
 export const metadata: Metadata = {
   title: "Photograph lab",
   description: "VisuCV's algorithms on a real photograph, from the whole picture down to one pixel.",
+  openGraph: og("Photograph lab · VisuCV", "VisuCV's algorithms on a real photograph, from the whole picture down to one pixel."),
 };
 
 export default function PhotoPage() {

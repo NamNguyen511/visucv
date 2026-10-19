@@ -6,6 +6,7 @@ import { Explainer } from "@/components/explainer";
 import { Player } from "@/components/player";
 import { TrackVisit } from "@/components/progress";
 import { algorithms, topics } from "@/lib/algos";
+import { og } from "@/lib/og";
 
 // Live pages in roadmap order, for previous / next.
 const order = topics.flatMap(t => t.items).filter(i => i.id).map(i => i.id!);
@@ -18,7 +19,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: PageProps<"/algo/[id]">): Promise<Metadata> {
   const { meta } = algorithms[(await params).id];
-  return { title: meta.title, description: meta.lead };
+  return { title: meta.title, description: meta.lead, openGraph: og(`${meta.title} · VisuCV`, meta.lead) };
 }
 
 export default async function AlgoPage({ params }: PageProps<"/algo/[id]">) {

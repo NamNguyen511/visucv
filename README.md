@@ -4,6 +4,8 @@ Interactive, step-through visualizations of computer vision algorithms. Each pag
 algorithm on a small image; you step, play or scrub through it while the pseudocode line for
 every step lights up beside it.
 
+**Live:** https://visucv.vercel.app
+
 ## Why this exists
 
 I found Stan Birchfield's *Introduction to Computer Vision* really interesting while working

@@ -39,6 +39,8 @@ Adopt the Lovable design's look and structure, filled with VisuCV's real content
 - fix the pseudocode clipping on phones
 
 ## Not doing (and why)
+Superseded later: the hero now has algorithm chips, and "Continue where you left off" shipped with progress memory.
+
 - **An algorithm picker in the hero:** the hero is a showcase only.
 - **Dark-only:** we follow the system setting.
 - **Lovable's placeholder algorithms and "20 × 20 pixels" footers:** they don't match the real site.

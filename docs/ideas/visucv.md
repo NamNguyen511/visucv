@@ -60,14 +60,14 @@ in the same roadmap order:
 
 ## Not Doing (and Why)
 - Running user code / Pyodide — pseudocode chosen; saves ~10 MB and complexity.
-- Accounts / progress tracking — no users yet.
+- Accounts / server-side progress — no users yet. (Visited pages are remembered in this browser only, via `lib/progress.ts`.)
 - Deep-learning pages — prove the format on classical CV first.
 - Real photos on the step-through pages — small grids are what make stepping readable. (Photos, samples or
   your own, live in the separate Photograph lab at `/photo`, which runs the filters without stepping.)
-- Pipeline playground and challenge mode — later layers on top of `run()`.
+- Pipeline playground — a later layer on top of `run()`. (Small try-it challenges exist on four pages, via `Algorithm.challenge`.)
 - Post-MVP groups (features, 3-D, deep learning) — until the 12 classical pages ship.
 - Hough transform (§12.4) and Laplacian / LoG zero crossings (Ch. 13) — different algorithms from Canny; candidates for their own pages after the MVP.
 
 ## Open Questions
 - Is the name free? Check GitHub `visucv` and .com/.dev/.io before publishing.
-- Hosting: GitHub Pages when ready to share.
+- Hosting: live on Vercel at https://visucv.vercel.app (deploys `main` on push).
