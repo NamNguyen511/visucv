@@ -10,6 +10,7 @@ import { momentsAlgo } from "./moments";
 import { morphology } from "./morphology";
 import { nonlinear } from "./nonlinear";
 import { otsu } from "./otsu";
+import { ransacAlgo } from "./ransac";
 import { transforms } from "./transforms";
 import { warping } from "./warping";
 import type { Algorithm } from "./types";
@@ -29,6 +30,7 @@ export const algorithms: Record<string, Algorithm> = {
   [fourier.meta.id]: fourier,
   [harris.meta.id]: harris,
   [flow.meta.id]: flow,
+  [ransacAlgo.meta.id]: ransacAlgo,
 };
 
 // Topic map. `id` set = page exists; no id = "coming soon".
@@ -56,7 +58,7 @@ export const topics: { name: string; items: { title: string; id?: string }[] }[]
   { name: "Features & motion", items: [
     { title: "Harris corners", id: "harris" },
     { title: "Optical flow (Lucas–Kanade)", id: "flow" },
-    { title: "RANSAC" },
+    { title: "RANSAC", id: "ransac" },
   ]},
   { name: "3-D vision", items: [
     { title: "Pinhole camera & image formation" },

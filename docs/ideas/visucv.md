@@ -56,7 +56,7 @@ in the same roadmap order:
 |---|---|---|---|---|
 | 13 | Features & motion | Harris corners (with Shi-Tomasi) | Ch 20 | ✅ |
 | 14 | Features & motion | Optical flow (Lucas–Kanade) | Ch 21 | ✅ |
-| 15 | Features & motion | RANSAC | Ch 23 | next |
+| 15 | Features & motion | RANSAC | Ch 23 | ✅ |
 
 ## Not Doing (and Why)
 - Running user code / Pyodide — pseudocode chosen; saves ~10 MB and complexity.

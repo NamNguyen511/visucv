@@ -31,6 +31,7 @@ learning alongside it.
 | Fourier Transform & Frequency Filtering | Ch. 15 |
 | Harris & Shi-Tomasi Corners | Ch. 20 |
 | Optical Flow (Lucas–Kanade) | Ch. 21 |
+| RANSAC Line Fitting | Ch. 23 |
 
 More are on the roadmap (see the home page).
 
