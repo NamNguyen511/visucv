@@ -48,7 +48,8 @@ test.describe("home", () => {
     await page.getByLabel("Find an algorithm").fill("");
     await page.getByRole("button", { name: /^Coming soon/ }).click();
     await expect(cards).toHaveCount(0);
-    await expect(page.getByText("Optical flow (Lucas–Kanade)")).toBeVisible();
+    const soon = topics.flatMap(t => t.items).find(i => !i.id)!.title;
+    await expect(page.getByText(soon, { exact: true })).toBeVisible();
     await expect(page.getByRole("progressbar")).toBeVisible();
   });
 
@@ -92,7 +93,7 @@ test.describe("home", () => {
     });
 
   test("window-based pages show the values inside the kernel", async ({ page }) => {
-    for (const id of ["morphology", "convolution", "nonlinear", "harris"]) {
+    for (const id of ["morphology", "convolution", "nonlinear", "harris", "flow"]) {
       await page.goto(`/algo/${id}`);
       await page.getByLabel("Next step").click();
       await page.getByLabel("Next step").click();

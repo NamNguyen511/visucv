@@ -30,6 +30,7 @@ learning alongside it.
 | Median, Min/Max & Bilateral Filters | Ch. 14 |
 | Fourier Transform & Frequency Filtering | Ch. 15 |
 | Harris & Shi-Tomasi Corners | Ch. 20 |
+| Optical Flow (Lucas–Kanade) | Ch. 21 |
 
 More are on the roadmap (see the home page).
 

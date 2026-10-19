@@ -2,6 +2,7 @@ import { components } from "./components";
 import { convolution } from "./convolution";
 import { distance } from "./distance";
 import { edges } from "./edges";
+import { flow } from "./flow";
 import { fourier } from "./fourier";
 import { gaussian } from "./gaussian";
 import { harris } from "./harris";
@@ -27,6 +28,7 @@ export const algorithms: Record<string, Algorithm> = {
   [nonlinear.meta.id]: nonlinear,
   [fourier.meta.id]: fourier,
   [harris.meta.id]: harris,
+  [flow.meta.id]: flow,
 };
 
 // Topic map. `id` set = page exists; no id = "coming soon".
@@ -53,7 +55,7 @@ export const topics: { name: string; items: { title: string; id?: string }[] }[]
   ]},
   { name: "Features & motion", items: [
     { title: "Harris corners", id: "harris" },
-    { title: "Optical flow (Lucas–Kanade)" },
+    { title: "Optical flow (Lucas–Kanade)", id: "flow" },
     { title: "RANSAC" },
   ]},
   { name: "3-D vision", items: [
