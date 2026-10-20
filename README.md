@@ -33,6 +33,7 @@ learning alongside it.
 | Optical Flow (Lucas–Kanade) | Ch. 21 |
 | RANSAC Line Fitting | Ch. 23 |
 | Pinhole Camera & Image Formation | Ch. 16 |
+| Epipolar Geometry | — |
 
 More are on the roadmap (see the home page).
 

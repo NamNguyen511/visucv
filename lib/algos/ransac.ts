@@ -64,7 +64,7 @@ export function sampleImage(image: string): Grid {
 }
 
 /** The line clipped to the image box, as a drawable segment. */
-function segment(L: Line, h: number, w: number, offset = 0, thick = false, panel?: number): Shape[] {
+export function segment(L: Line, h: number, w: number, offset = 0, thick = false, panel?: number): Shape[] {
   const x = L.x - offset * L.dy, y = L.y + offset * L.dx;
   let lo = -Infinity, hi = Infinity;
   for (const [p, d, max] of [[x, L.dx, w - 0.5], [y, L.dy, h - 0.5]]) {

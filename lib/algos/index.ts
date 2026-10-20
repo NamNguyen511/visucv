@@ -2,6 +2,7 @@ import { components } from "./components";
 import { convolution } from "./convolution";
 import { distance } from "./distance";
 import { edges } from "./edges";
+import { epipolar } from "./epipolar";
 import { flow } from "./flow";
 import { fourier } from "./fourier";
 import { gaussian } from "./gaussian";
@@ -33,6 +34,7 @@ export const algorithms: Record<string, Algorithm> = {
   [flow.meta.id]: flow,
   [ransacAlgo.meta.id]: ransacAlgo,
   [pinhole.meta.id]: pinhole,
+  [epipolar.meta.id]: epipolar,
 };
 
 // Topic map. `id` set = page exists; no id = "coming soon".
@@ -64,7 +66,7 @@ export const topics: { name: string; items: { title: string; id?: string }[] }[]
   ]},
   { name: "3-D vision", items: [
     { title: "Pinhole camera & image formation", id: "pinhole" },
-    { title: "Epipolar geometry" },
+    { title: "Epipolar geometry", id: "epipolar" },
     { title: "Structure from motion" },
   ]},
   { name: "Deep learning", items: [

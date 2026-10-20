@@ -58,6 +58,7 @@ in the same roadmap order:
 | 14 | Features & motion | Optical flow (Lucas–Kanade) | Ch 21 | ✅ |
 | 15 | Features & motion | RANSAC | Ch 23 | ✅ |
 | 16 | 3-D vision | Pinhole camera & image formation | Ch 16 | ✅ |
+| 17 | 3-D vision | Epipolar geometry | — | ✅ |
 
 ## Not Doing (and Why)
 - Running user code / Pyodide — pseudocode chosen; saves ~10 MB and complexity.
