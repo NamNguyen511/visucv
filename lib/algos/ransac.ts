@@ -100,7 +100,7 @@ export const ransacAlgo: Algorithm = {
     id: "ransac",
     title: "RANSAC Line Fitting",
     topic: "Features & motion",
-    ref: "Birchfield, Ch. 23",
+    ref: "Birchfield, Ch. 23 — Model Fitting",
     lead: "Guess a line from two random points, count who agrees, repeat, and keep the guess with the most support.",
     hook: "Fit a model when most data lies.",
   },

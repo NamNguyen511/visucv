@@ -67,7 +67,7 @@ export const pinhole: Algorithm = {
     id: "pinhole",
     title: "Pinhole Camera & Image Formation",
     topic: "3-D vision",
-    ref: "Birchfield",
+    ref: "Birchfield, Ch. 16",
     lead: "Every scene point sends one ray through the pinhole; where it crosses the image plane, x = f·X/Z, is its pixel.",
     hook: "How 3-D points become pixels.",
   },
