@@ -59,7 +59,7 @@ test.describe("home", () => {
       await page.emulateMedia({ colorScheme });
       await page.goto(path);
       if (path.startsWith("/algo")) await page.getByLabel("Next step").click(); // show the readouts and kernel box
-      if (path === "/photo") await expect(page.getByRole("heading", { name: "Inside one pixel" })).toBeVisible();
+      if (path === "/photo") await expect(page.getByRole("img", { name: / of the photo$/ })).toBeVisible();
       const low = await page.evaluate(() => {
         // Let the browser convert any CSS colour (oklab, color-mix, …) to RGBA bytes.
         const ctx = document.createElement("canvas").getContext("2d", { willReadFrequently: true })!;
@@ -153,9 +153,6 @@ test.describe("home", () => {
     await page.getByLabel("Next step").click();
     const label = (t: string) => page.locator("dt").filter({ hasText: t }).first();
     for (const t of ["σ²_B(t)", "μ₀ / μ₁", "ω₀ / ω₁"]) expect(await label(t).innerText()).toBe(t);
-    await page.goto("/photo");
-    await page.getByRole("button", { name: "Harris corners", exact: true }).click();
-    expect(await label("λ₁, λ₂").innerText()).toBe("λ₁, λ₂");
   });
 
   test("hero: drawing changes the output, and every chip shows a different result", async ({ page }) => {
@@ -232,40 +229,54 @@ test.describe("home", () => {
     }
   });
 
-  test("photograph lab: every filter changes the image, hovering inspects, your own photo loads", async ({ page }) => {
+  test("photograph lab: every algorithm changes the result, knobs change it too, the original stays, your own photo loads", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", e => errors.push(e.message));
     await page.goto("/photo");
-    const shown = page.getByRole("img", { name: / of the photo$/ });
-    await expect(page.getByRole("heading", { name: "Inside one pixel" })).toBeVisible();
+    const shown = page.getByRole("img", { name: / of the photo$/ }), original = page.getByRole("img", { name: "Original photo" });
+    await expect(original).toBeVisible();
     const snap = () => shown.evaluate(c => (c as HTMLCanvasElement).toDataURL());
+    const before = await original.evaluate(c => (c as HTMLCanvasElement).toDataURL());
     const seen = new Set<string>();
-    for (const f of ["Colour", "Grayscale", "Otsu threshold", "Gaussian blur", "Median 3×3", "Sharpen", "Edges", "Harris corners"]) {
-      await page.getByRole("button", { name: f, exact: true }).click();
-      await expect.poll(async () => { const d = await snap(); return seen.has(d) ? "same" : (seen.add(d), "new"); }, { message: f }).toBe("new");
+    const fresh = (what: string) => expect.poll(async () => { const d = await snap(); return seen.has(d) ? "same" : (seen.add(d), "new"); }, { message: what }).toBe("new");
+    const algos = page.getByRole("group", { name: "Algorithm" }).getByRole("button");
+    await expect(algos).toHaveCount(10);
+    for (const name of await algos.allInnerTexts()) {
+      await page.getByRole("button", { name, exact: true }).click();
+      await fresh(name);
     }
-    const where = page.getByText(/^\(x, y\) = /), before = await where.textContent();
-    const box = (await shown.boundingBox())!;
-    await shown.hover({ position: { x: box.width * 0.2, y: box.height * 0.8 } }); // scrolls into view first
-    await expect(where).not.toHaveText(before!);
+    await page.getByRole("button", { name: "Gaussian blur", exact: true }).click();
+    await page.locator("label", { hasText: "σ" }).locator("select").selectOption("3");
+    await fresh("σ = 3");
+    await page.getByRole("button", { name: "Median & friends", exact: true }).click();
+    await page.locator("label", { hasText: "Filter" }).locator("select").selectOption("bilateral");
+    await fresh("bilateral");
+    const sigmaR = page.locator("label", { hasText: "σ_r" }).locator("select");
+    await sigmaR.selectOption("∞");
+    await expect(sigmaR).toHaveValue("∞"); // a string option on a numeric knob must not turn into NaN
+    await fresh("σ_r = ∞");
+    expect(await original.evaluate(c => (c as HTMLCanvasElement).toDataURL())).toBe(before); // the original never changes
     await page.getByLabel(/Use your own photo/).setInputFiles("public/photos/camera.jpg");
-    await expect.poll(snap).not.toBe([...seen].at(-1));
+    await fresh("your photo");
     const [scroll, inner] = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
     expect(scroll).toBeLessThanOrEqual(inner);
     expect(errors).toEqual([]);
   });
 
-  test("photograph lab: Fit fits, focus rings show, pins survive a resolution change, bad files say so and your photo still reloads", async ({ page }) => {
+  test("photograph lab: both views fit, wipe splits, focus rings show, resolution changes, bad files say so and your photo still reloads", async ({ page }) => {
     await page.goto("/photo");
-    await expect(page.getByRole("heading", { name: "Inside one pixel" })).toBeVisible();
     await page.getByRole("button", { name: "Camera" }).click(); // square photo: the tallest sample
-    const view = page.getByLabel(/arrow keys move the inspected pixel/);
-    const overflow = () => page.getByRole("img", { name: / of the photo$/ }).evaluate(el => {
-      let a = el.parentElement!;
-      while (getComputedStyle(a).overflow === "visible") a = a.parentElement!; // the photo's scroll box
-      return Math.max(a.scrollHeight - a.clientHeight, a.scrollWidth - a.clientWidth);
-    });
+    const result = page.getByRole("img", { name: / of the photo$/ });
+    await page.getByRole("img", { name: "Original photo" }).scrollIntoViewIfNeeded();
+    await expect.poll(async () => (await result.boundingBox())!.height).toBeLessThanOrEqual(0.7 * page.viewportSize()!.height);
+    await page.getByRole("button", { name: "Wipe", exact: true }).click();
+    const view = page.getByLabel(/original on the left of the split/);
+    const overflow = () => view.evaluate(a => Math.max(a.scrollHeight - a.clientHeight, a.scrollWidth - a.clientWidth));
     await expect.poll(overflow).toBeLessThanOrEqual(1); // "Fit" shows the whole photo
+    await page.getByLabel("Split position").fill("20");
+    await expect(result).toHaveAttribute("style", /inset\(0px 0px 0px 20%\)|inset\(0 0 0 20%\)/);
+    await page.getByRole("button", { name: "4×", exact: true }).click();
+    await expect.poll(overflow).toBeGreaterThan(1);
     // The keyboard focus ring must not be clipped by any scrolling ancestor.
     await view.focus();
     const clipped = await view.evaluate(el => {
@@ -283,17 +294,9 @@ test.describe("home", () => {
     await page.keyboard.press("Tab");
     await expect(page.getByLabel(/Use your own photo/)).toBeFocused();
     expect(await page.locator("label", { hasText: "Your photo" }).evaluate(el => getComputedStyle(el).boxShadow)).not.toBe("none");
-    // Pin a pixel, then double the resolution: the same spot stays pinned, at doubled coordinates.
-    const where = page.getByText(/^\(x, y\) = /);
-    const xy = async () => (await where.textContent())!.match(/\d+/g)!.map(Number);
-    await page.locator("select").selectOption("192");
-    await view.press("ArrowRight");
-    const [x, y] = await xy();
-    await page.locator("select").selectOption("384");
-    await expect(page.getByText(/^384 × /)).toBeVisible();
-    const [x2, y2] = await xy();
-    expect(Math.abs(x2 - 2 * x)).toBeLessThanOrEqual(1);
-    expect(Math.abs(y2 - 2 * y)).toBeLessThanOrEqual(1);
+    const pixels = page.locator("label", { hasText: "Pixels" }).locator("select");
+    await pixels.selectOption("384");
+    await expect(page.getByText(/^384 × 384 /)).toBeVisible();
     await page.getByRole("button", { name: "Harris corners", exact: true }).click();
     await expect(page.getByRole("link", { name: /^Harris corners, step by step/ })).toBeVisible();
     // Your own photo, then a bad file: the lab falls back to your photo and can still re-read it.
@@ -301,7 +304,7 @@ test.describe("home", () => {
     await expect(page.getByText(/^384 × 255 /)).toBeVisible();
     await page.getByLabel(/Use your own photo/).setInputFiles({ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("not an image") });
     await expect(page.getByRole("alert").filter({ hasText: "as an image" })).toContainText("notes.txt");
-    await page.locator("select").selectOption("96");
+    await pixels.selectOption("96");
     await expect(page.getByText(/^96 × 64 /)).toBeVisible();
   });
 

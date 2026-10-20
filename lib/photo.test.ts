@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { filter2d, KERNELS } from "./algos/convolution";
-import { gradient } from "./algos/edges";
 import { type Grid, grid } from "./algos/types";
-import { FILTERS, applyFilter, inspect, toGray } from "./photo";
+import { FILTERS, applyFilter, defaults, toGray } from "./photo";
 
 // A photo-sized test image (384×384 ≈ 147k pixels): big arrays must not hit argument limits.
 const N = 384;
@@ -19,28 +17,46 @@ describe("photograph lab", () => {
     expect([...g.data].map(v => +v.toFixed(4))).toEqual([0.299, 0.587, 0.114, +((0.299 * 200 + 0.587 * 100 + 0.114 * 50) / 255).toFixed(4)]);
   });
 
-  it("every filter runs on a full-size photo and keeps its size", () => {
+  it("every filter, at every option of every knob, runs on a full-size photo, keeps its size and stays drawable", () => {
     const I = photo();
-    for (const { id } of FILTERS) {
-      const f = applyFilter(I, id);
-      expect(f.shown.data.length, id).toBe(N * N);
-      expect(f.raw.length, id).toBe(N * N);
-    }
+    for (const f of FILTERS)
+      for (const p of [defaults(f), ...f.params.flatMap(k => k.options.map(o => ({ ...defaults(f), [k.key]: o })))]) {
+        const t = performance.now(), { shown } = applyFilter(I, f.id, p), what = `${f.id} ${JSON.stringify(p)}`;
+        expect(performance.now() - t, what).toBeLessThan(3000); // the browser is faster; this guards a step-per-pixel slip
+        expect(shown.data.length, what).toBe(N * N);
+        expect(shown.data.every(v => Number.isFinite(v) && (shown.labels ? v >= 0 : v >= 0 && v <= 1)), what).toBe(true);
+      }
   });
 
-  it("inspector: value × weight products sum to the filter's own output (sharpen, Sobel x)", () => {
-    const I = photo(), [y, x] = [100, 150];
-    const s = inspect(I, applyFilter(I, "sharpen"), "sharpen", y, x);
-    expect(s.products!.reduce((a, p) => a + p.product, 0)).toBeCloseTo(filter2d(I, KERNELS.sharpen, "correlation", "replicate")[y * N + x], 9);
-    const e = inspect(I, applyFilter(I, "edges"), "edges", y, x), g = gradient(I, "Sobel");
-    expect(e.products!.reduce((a, p) => a + p.product, 0)).toBeCloseTo(g.ix[y * N + x], 9);
-    expect(e.out).toBeCloseTo(g.mag[y * N + x], 9);
+  it("every knob is a real option list with its default in it", () => {
+    for (const f of FILTERS) for (const k of f.params) expect(k.options, `${f.id}.${k.key}`).toContain(k.default);
   });
 
-  it("Otsu splits the bright box from the background; Harris finds its 4 corners", () => {
-    const I = photo(), t = applyFilter(I, "otsu");
-    expect(t.shown.data[200 * N + 200]).toBe(1);
-    expect(t.shown.data[10 * N + 10]).toBe(0);
+  it("Otsu splits the bright box from the background; the binary filters work on that split", () => {
+    const I = photo(), t = applyFilter(I, "otsu").shown;
+    expect(t.data[200 * N + 200]).toBe(1);
+    expect(t.data[10 * N + 10]).toBe(0);
+    const L = applyFilter(I, "components", { conn: 4, minSize: 1 }).shown;
+    expect(L.labels).toBe(true);
+    expect(new Set(L.data).size).toBe(2); // background + the one box
+    const D = applyFilter(I, "distance", { metric: "chessboard", shading: "smooth" }).shown;
+    expect(D.data[200 * N + 200]).toBeGreaterThan(D.data[102 * N + 200]); // deeper inside = brighter
+    const E = applyFilter(I, "morphology", { op: "erode", size: 7, shape: "square" }).shown;
+    expect(E.data[101 * N + 200]).toBe(0); // the box's edge row erodes away
+    expect(E.data[200 * N + 200]).toBe(1);
+  });
+
+  it("components: the size filter drops small blobs and renumbers the rest from 1", () => {
+    const A = grid(10, 10);
+    for (const k of [0, 1, 10, 11, 55, 99]) A.data[k] = 1; // a 2×2 blob and two single pixels
+    const big = applyFilter(A, "components", { conn: 8, minSize: 2 }).shown.data;
+    expect([...new Set(big)].sort()).toEqual([0, 1]);
+  });
+
+  it("Canny finds the box outline and nothing in the flat inside; Harris finds its 4 corners", () => {
+    const I = photo(), e = applyFilter(I, "edges").shown.data;
+    expect([...e.slice(195 * N + 140, 195 * N + 160)].some(v => v === 1)).toBe(true); // crosses x ≈ 150
+    expect(e[200 * N + 200]).toBe(0);
     const c = applyFilter(I, "corners").corners!;
     for (const [cy, cx] of [[101, 151], [101, 249], [299, 151], [299, 249]])
       expect(c.some(([y, x]) => Math.abs(y - cy) <= 2 && Math.abs(x - cx) <= 2), `${cx},${cy}`).toBe(true);

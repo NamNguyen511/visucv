@@ -1,12 +1,13 @@
 "use client";
-// Photograph lab: one real photo, VisuCV's filters on all of it, and an inspector for one pixel.
-// Photos are read and processed in the browser only; "Your photo" is never uploaded anywhere.
+// Photograph lab: one real photo, every photo-sized VisuCV algorithm as a live thumbnail, and the chosen
+// one's result next to the original. Photos are read and processed in the browser only; "Your photo" is
+// never uploaded anywhere.
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, ImagePlus } from "lucide-react";
-import { type Grid, grid } from "@/lib/algos/types";
-import { FILTERS, type FilterId, GRAY_WEIGHTS, applyFilter, inspect, toGray } from "@/lib/photo";
-import { GridCanvas } from "./grid-canvas";
+import type { Params } from "@/lib/algos/types";
+import { LABEL_COLORS } from "@/lib/pixel";
+import { FILTERS, type FilterId, type Filtered, applyFilter, defaults, toGray } from "@/lib/photo";
 
 const SAMPLES = [
   { src: "/photos/astronaut.jpg", label: "Astronaut" },
@@ -14,15 +15,17 @@ const SAMPLES = [
   { src: "/photos/camera.jpg", label: "Camera" },
 ];
 const WIDTHS = [96, 192, 384];
-const ZOOMS = [["Fit", 0], ["4×", 4], ["8×", 8], ["16×", 16]] as const;
-type View = "color" | FilterId;
+const THUMB_W = 96;
 type Photo = { w: number; h: number; rgba: Uint8ClampedArray };
+type Mode = "side" | "wipe";
 
 async function load(src: string, width: number): Promise<Photo> {
   const img = new Image();
   img.src = src;
   await img.decode();
-  const w = Math.min(width, img.width), h = Math.round((img.height * w) / img.width);
+  // Cap the longest side, so a very tall upload costs no more than a wide one.
+  const scale = Math.min(1, width / Math.max(img.width, img.height));
+  const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale)); // a 1000×2 strip stays ≥ 1 row
   const c = document.createElement("canvas");
   c.width = w; c.height = h;
   const ctx = c.getContext("2d", { willReadFrequently: true })!;
@@ -30,16 +33,20 @@ async function load(src: string, width: number): Promise<Photo> {
   return { w, h, rgba: ctx.getImageData(0, 0, w, h).data };
 }
 
-/** Draws a gray grid (or the colour photo) into a canvas at one canvas pixel per image pixel. */
-function paint(c: HTMLCanvasElement | null, p: Photo, g: Grid | null, marks: [number, number][] = []) {
+const LABEL_RGB = LABEL_COLORS.map(c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16)));
+
+/** Draws a result (or, with none, the colour photo) into a canvas at one canvas pixel per image pixel. */
+function paint(c: HTMLCanvasElement | null, p: Photo, f: Filtered | null) {
   if (!c) return;
   c.width = p.w; c.height = p.h;
-  const img = new ImageData(p.w, p.h);
+  const img = new ImageData(p.w, p.h), g = f?.shown;
   for (let k = 0; k < p.w * p.h; k++) {
-    if (g) { const v = Math.round(g.data[k] * 255); img.data.set([v, v, v, 255], 4 * k); }
-    else img.data.set(p.rgba.subarray(4 * k, 4 * k + 4), 4 * k);
+    if (!g) { img.data.set(p.rgba.subarray(4 * k, 4 * k + 4), 4 * k); continue; }
+    const v = g.data[k];
+    if (g.labels && v > 0) img.data.set([...LABEL_RGB[(v - 1) % LABEL_RGB.length], 255], 4 * k);
+    else { const c8 = g.labels ? 0 : Math.round(v * 255); img.data.set([c8, c8, c8, 255], 4 * k); }
   }
-  for (const [y, x] of marks) // corners: a small accent cross
+  for (const [y, x] of f?.corners ?? []) // corners: a small accent cross
     for (const [dy, dx] of [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1], [-2, 0], [2, 0], [0, -2], [0, 2]]) {
       const yy = y + dy, xx = x + dx;
       if (yy >= 0 && yy < p.h && xx >= 0 && xx < p.w) img.data.set([45, 212, 191, 255], 4 * (yy * p.w + xx));
@@ -47,45 +54,36 @@ function paint(c: HTMLCanvasElement | null, p: Photo, g: Grid | null, marks: [nu
   c.getContext("2d")!.putImageData(img, 0, 0);
 }
 
-const crop = (g: Grid, y: number, x: number, r: number): Grid => {
-  const n = 2 * r + 1, out = grid(n, n);
-  for (let i = 0; i < n; i++)
-    for (let j = 0; j < n; j++) {
-      const yy = Math.min(g.h - 1, Math.max(0, y + i - r)), xx = Math.min(g.w - 1, Math.max(0, x + j - r));
-      out.data[i * n + j] = g.data[yy * g.w + xx];
-    }
-  return out;
-};
+function Thumb({ photo, f }: { photo: Photo; f: Filtered }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => paint(ref.current, photo, f), [photo, f]);
+  return <canvas ref={ref} aria-hidden className="pixels block aspect-[3/2] w-full rounded-md object-cover" />;
+}
+
 /** Frees "Your photo"'s blob URL once nothing will read it again (sample paths are left alone). */
 const forget = (src: string | null) => { if (src?.startsWith("blob:")) URL.revokeObjectURL(src); };
-const f3 = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(3));
 
 export function PhotoLab() {
   const [src, setSrc] = useState(SAMPLES[0].src);
   const [width, setWidth] = useState(192);
   const [photo, setPhoto] = useState<Photo | null>(null);
-  const [view, setView] = useState<View>("edges");
+  const [small, setSmall] = useState<Photo | null>(null); // the thumbnails' copy
+  const [id, setId] = useState<FilterId>("edges");
+  const [knobs, setKnobs] = useState<Partial<Record<FilterId, Params>>>({}); // each filter keeps its own settings
+  const [mode, setMode] = useState<Mode>("side");
   const [zoom, setZoom] = useState(0);
-  const [compare, setCompare] = useState(false);
   const [split, setSplit] = useState(50);
-  const [px, setPx] = useState<[number, number]>([0, 0]);
-  const [pinned, setPinned] = useState(false);
   const [failed, setFailed] = useState<string | null>(null); // name of a file that wouldn't decode
   const fileName = useRef("that file"), lastGood = useRef<string | null>(null);
   const before = useRef<HTMLCanvasElement>(null), after = useRef<HTMLCanvasElement>(null);
-  const marker = useRef<HTMLSpanElement>(null), size = useRef<[number, number] | null>(null);
 
   useEffect(() => {
     let live = true;
-    load(src, width).then(p => {
+    Promise.all([load(src, width), load(src, THUMB_W)]).then(([p, s]) => {
       if (!live) return;
-      // Same spot in the new image (resolution or photo change), so a pinned pixel stays put.
-      const old = size.current;
-      setPx(([a, b]) => old ? [Math.floor(((a + 0.5) * p.h) / old[0]), Math.floor(((b + 0.5) * p.w) / old[1])] : [Math.floor(p.h / 3), Math.floor(p.w / 2)]);
-      size.current = [p.h, p.w];
       if (lastGood.current !== src) forget(lastGood.current); // a resolution change re-reads the same file
       lastGood.current = src;
-      setPhoto(p);
+      setPhoto(p); setSmall(s);
     }).catch(() => {
       if (!live) return;
       forget(src);
@@ -96,57 +94,32 @@ export function PhotoLab() {
   }, [src, width]);
   useEffect(() => () => forget(lastGood.current), []);
 
+  const meta = FILTERS.find(f => f.id === id)!, p = knobs[id] ?? defaults(meta);
   const gray = useMemo(() => (photo ? toGray(photo.rgba, photo.w, photo.h) : null), [photo]);
-  const id: FilterId = view === "color" ? "gray" : view;
-  const filtered = useMemo(() => (gray ? applyFilter(gray, id) : null), [gray, id]);
+  const filtered = useMemo(() => (gray ? applyFilter(gray, id, p) : null), [gray, id, JSON.stringify(p)]); // eslint-disable-line react-hooks/exhaustive-deps
+  const thumbs = useMemo(() => {
+    if (!small) return null;
+    const g = toGray(small.rgba, small.w, small.h);
+    return FILTERS.map(f => applyFilter(g, f.id));
+  }, [small]);
 
   useEffect(() => {
     if (!photo || !gray || !filtered) return;
-    paint(before.current, photo, compare ? null : gray);
-    paint(after.current, photo, view === "color" ? null : filtered.shown, filtered.corners);
-  }, [photo, gray, filtered, view, compare]);
+    // The wipe compares like with like (gray to result), so a subtle filter isn't drowned out by the colour.
+    paint(before.current, photo, mode === "wipe" ? { shown: gray } : null);
+    paint(after.current, photo, filtered);
+  }, [photo, gray, filtered, mode]);
 
-  if (!photo || !gray || !filtered) return <div className="mt-8 aspect-[3/2] animate-pulse rounded-2xl bg-pending" aria-label="Loading photograph" />;
+  if (!photo || !small || !filtered || !thumbs) return <div className="mt-8 aspect-[3/2] animate-pulse rounded-2xl bg-pending" role="status" aria-label="Loading photograph" />;
 
-  const [y, x] = [Math.min(px[0], photo.h - 1), Math.min(px[1], photo.w - 1)], k = y * photo.w + x;
-  const info = inspect(gray, filtered, id, y, x), meta = FILTERS.find(f => f.id === id)!;
-  const rgb = [photo.rgba[4 * k], photo.rgba[4 * k + 1], photo.rgba[4 * k + 2]];
-  const shown = view === "color" ? null : filtered.shown.data[k];
-
-  const pick = (e: React.PointerEvent<HTMLDivElement>, pin: boolean) => {
-    if (pinned && !pin) return;
-    const r = e.currentTarget.getBoundingClientRect();
-    const xx = Math.floor(((e.clientX - r.left) / r.width) * photo.w), yy = Math.floor(((e.clientY - r.top) / r.height) * photo.h);
-    if (xx >= 0 && xx < photo.w && yy >= 0 && yy < photo.h) setPx([yy, xx]);
-    if (pin) setPinned(p => !p);
-  };
-  const keys = (e: React.KeyboardEvent) => {
-    const d = ({ ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] } as Record<string, number[]>)[e.key];
-    if (!d) return;
-    e.preventDefault();
-    setPinned(true);
-    setPx(([a, b]) => [Math.min(photo.h - 1, Math.max(0, a + d[0])), Math.min(photo.w - 1, Math.max(0, b + d[1]))]);
-    requestAnimationFrame(() => marker.current?.scrollIntoView({ block: "nearest", inline: "nearest" })); // zoomed views
-  };
   const chip = (on: boolean) => `rounded-lg px-3 py-1.5 text-sm transition active:translate-y-px ${on ? "bg-highlight font-medium text-accent" : "text-muted-foreground hover:text-foreground"}`;
-  const cssW = zoom ? photo.w * zoom : undefined;
+  const fit = `min(100%, ${(62 * photo.w) / photo.h}vh)`; // whole photo fits a screen's height (once scrolled to)
+  const caption = "mb-1.5 font-mono text-xs uppercase tracking-widest text-muted-foreground";
+  const resultLabel = `${meta.label} of the photo`;
 
   return (
     <div className="mt-8">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-y border-border py-3">
-        <div className="flex flex-wrap gap-1" role="group" aria-label="Filter">
-          <button aria-pressed={view === "color"} className={chip(view === "color")} onClick={() => setView("color")}>Colour</button>
-          {FILTERS.map(f => <button key={f.id} aria-pressed={view === f.id} className={chip(view === f.id)} onClick={() => setView(f.id)}>{f.label}</button>)}
-        </div>
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          Pixels
-          <select className="rounded-lg border border-border bg-card px-2 py-1 text-foreground" value={width} onChange={e => setWidth(+e.target.value)}>
-            {WIDTHS.map(w => <option key={w} value={w}>{w} wide</option>)}
-          </select>
-        </label>
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+      <div className="flex flex-wrap items-center gap-2 border-y border-border py-3 text-sm">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Photo</span>
         {SAMPLES.map(s => (
           <button key={s.src} aria-pressed={src === s.src} onClick={() => { setSrc(s.src); setFailed(null); }}
@@ -166,84 +139,85 @@ export function PhotoLab() {
         </label>
         <span className="text-xs text-muted-foreground">stays in your browser</span>
         {failed && <span role="alert" className="text-sm font-medium text-foreground">Couldn&apos;t read {failed} as an image.</span>}
+        <label className="ml-auto flex items-center gap-2 text-muted-foreground">
+          Pixels
+          <select className="rounded-lg border border-border bg-card px-2 py-1 text-foreground" value={width} onChange={e => setWidth(+e.target.value)}>
+            {WIDTHS.map(w => <option key={w} value={w}>{w} px</option>)}
+          </select>
+        </label>
       </div>
 
-      <div className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
-        <section aria-label="Photograph">
-          <div className="mb-2 flex items-center justify-between font-mono text-xs text-muted-foreground">
-            <span>{photo.w} × {photo.h} pixels · {view === "color" ? "colour" : meta.label}{compare ? " · left: original, right: filtered" : ""}</span>
-            <span>{pinned ? "pinned · click to unpin" : "hover to inspect · click to pin"}</span>
-          </div>
-          {/* The scroll box takes focus: a ring on the inner image would be clipped by overflow-auto. */}
-          <div tabIndex={0} onKeyDown={keys} aria-label="Photograph: arrow keys move the inspected pixel"
+      <div role="group" aria-label="Algorithm" className="mt-4 grid grid-cols-5 gap-2 xl:grid-cols-10">
+        {FILTERS.map((f, n) => (
+          <button key={f.id} aria-pressed={id === f.id} onClick={() => setId(f.id)}
+                  className={`rounded-lg border p-1 text-left transition active:translate-y-px ${id === f.id ? "border-accent bg-highlight" : "border-border hover:border-accent"}`}>
+            <Thumb photo={small} f={thumbs[n]} />
+            <span className={`mt-1 block truncate px-0.5 text-xs ${id === f.id ? "font-medium text-accent" : "text-muted-foreground"}`}>{f.label}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        {meta.params.map(k => (
+          <label key={k.key} className="flex items-center gap-2 text-muted-foreground">
+            {k.label}
+            <select className="rounded-lg border border-border bg-card px-2 py-1 text-foreground" value={String(p[k.key])}
+                    onChange={e => setKnobs(all => ({ ...all, [id]: { ...p, [k.key]: k.options.find(o => String(o) === e.target.value)! } }))}>
+              {k.options.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </label>
+        ))}
+        <div className="ml-auto flex flex-wrap items-center gap-1" role="group" aria-label="Compare">
+          <button aria-pressed={mode === "side"} className={chip(mode === "side")} onClick={() => setMode("side")}>Side by side</button>
+          <button aria-pressed={mode === "wipe"} className={chip(mode === "wipe")} onClick={() => setMode("wipe")}>Wipe</button>
+          {mode === "wipe" && <>
+            <span aria-hidden className="mx-1 h-5 w-px bg-border" />
+            <button aria-pressed={zoom === 0} className={chip(zoom === 0)} onClick={() => setZoom(0)}>Fit</button>
+            <button aria-pressed={zoom === 4} className={chip(zoom === 4)} onClick={() => setZoom(4)}>4×</button>
+          </>}
+        </div>
+      </div>
+
+      <p className="mt-4 mb-2 font-mono text-xs text-muted-foreground">
+        {photo.w} × {photo.h} pixels · {meta.label}{meta.binary ? " · on Otsu's black-and-white result" : ""}
+      </p>
+      {mode === "side" ? (
+        <div className="grid grid-cols-2 gap-4">
+          <figure className="mx-auto w-full" style={{ maxWidth: fit }}>
+            <figcaption className={caption}>Original</figcaption>
+            <canvas ref={before} role="img" aria-label="Original photo" className="pixels block w-full rounded-xl ring-1 ring-border" />
+          </figure>
+          <figure className="mx-auto w-full" style={{ maxWidth: fit }}>
+            <figcaption className={caption}>{meta.label}</figcaption>
+            <canvas ref={after} role="img" aria-label={resultLabel} className="pixels block w-full rounded-xl ring-1 ring-border" />
+          </figure>
+        </div>
+      ) : (
+        <>
+          <div tabIndex={0} role="group" aria-label="Photograph: original on the left of the split, result on the right"
                className="max-h-[70vh] overflow-auto rounded-xl ring-1 ring-border outline-none focus-visible:ring-2 focus-visible:ring-accent">
-            <div className="relative mx-auto cursor-crosshair"
-                 style={{ width: cssW ?? `min(100%, ${(70 * photo.w) / photo.h}vh)` /* Fit: whole photo, no scrolling */ }}
-                 onPointerMove={e => pick(e, false)} onClick={e => pick(e as unknown as React.PointerEvent<HTMLDivElement>, true)}>
-              <canvas ref={before} className="pixels block w-full" aria-hidden={!compare} />
-              <canvas ref={after} className="pixels absolute inset-0 block w-full" role="img" aria-label={`${meta.label} of the photo`}
-                      style={compare ? { clipPath: `inset(0 0 0 ${split}%)` } : undefined} />
-              <span ref={marker} aria-hidden className="pointer-events-none absolute border-2 border-cursor"
-                    style={{ left: `${(x / photo.w) * 100}%`, top: `${(y / photo.h) * 100}%`, width: `max(${100 / photo.w}%, 6px)`, height: `max(${100 / photo.h}%, 6px)` }} />
+            <div className="relative mx-auto" style={{ width: zoom ? photo.w * zoom : fit }}>
+              <canvas ref={before} role="img" aria-label="Gray original photo" className="pixels block w-full" />
+              <canvas ref={after} role="img" aria-label={resultLabel} className="pixels absolute inset-0 block w-full"
+                      style={{ clipPath: `inset(0 0 0 ${split}%)` }} />
+              <span aria-hidden className="pointer-events-none absolute inset-y-0 w-0.5 bg-accent" style={{ left: `${split}%` }} />
             </div>
           </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
-            {ZOOMS.map(([label, z]) => <button key={label} aria-pressed={zoom === z} className={chip(zoom === z)} onClick={() => setZoom(z)}>{label}</button>)}
-            <label className="ml-auto flex items-center gap-2 text-muted-foreground">
-              <input type="checkbox" className="accent-accent" checked={compare} onChange={e => setCompare(e.target.checked)} /> Compare with the original
-            </label>
-            {compare && <input type="range" min={0} max={100} value={split} onChange={e => setSplit(+e.target.value)} aria-label="Split position" className="w-40 accent-accent" />}
-          </div>
-          <p className="mt-3 text-sm text-muted-foreground">{view === "color" ? "The photo as your screen shows it: three numbers per pixel." : meta.what}</p>
-        </section>
+          <label className="mt-3 flex items-center gap-3 text-sm text-muted-foreground">
+            Gray original ◂
+            <input type="range" min={0} max={100} value={split} onChange={e => setSplit(+e.target.value)} aria-label="Split position" className="w-64 accent-accent" />
+            ▸ {meta.label}
+          </label>
+        </>
+      )}
 
-        <aside aria-label="Pixel inspector" className="self-start rounded-2xl border border-border bg-card p-4 lg:sticky lg:top-20">
-          <div className="flex items-baseline justify-between">
-            <h2 className="font-semibold">Inside one pixel</h2>
-            <span className="font-mono text-sm">(x, y) = ({x}, {y})</span>
-          </div>
-
-          <ol className="mt-3 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-2 font-mono text-sm">
-            <li className="contents"><span className="text-xs uppercase tracking-wider text-muted-foreground">RGB</span>
-              <span className="flex items-center gap-2"><i className="inline-block size-4 rounded ring-1 ring-border" style={{ background: `rgb(${rgb.join(",")})` }} />{rgb.join(" / ")}</span></li>
-            <li className="contents"><span className="text-xs uppercase tracking-wider text-muted-foreground">gray</span>
-              <span>{f3(info.gray)}<br /><span className="text-xs text-muted-foreground">= ({GRAY_WEIGHTS.map((w, n) => `${String(w).slice(1)}·${rgb[n]}`).join(" + ")}) / 255</span></span></li>
-            {view !== "color" && view !== "gray" && <li className="contents"><span className="text-xs uppercase tracking-wider text-muted-foreground">{meta.label}</span><span>{f3(info.out)}</span></li>}
-            {shown !== null && <li className="contents"><span className="text-xs uppercase tracking-wider text-muted-foreground">shown</span><span>{f3(shown)} <span className="text-muted-foreground">({Math.round(shown * 255)} of 255)</span></span></li>}
-          </ol>
-
-          {info.products && (
-            <div className="mt-4">
-              <h3 className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Neighbourhood × kernel</h3>
-              <div className="mt-2 grid grid-cols-3 gap-1">
-                {info.products.map((p, n) => (
-                  <span key={n} className={`rounded-md border px-1.5 py-1 text-center font-mono text-[11px] leading-4 ${n === 4 ? "border-accent bg-highlight" : "border-border"}`}>
-                    {p.value.toFixed(2)} × {+p.weight.toFixed(2)}<br /><b className="font-semibold">{p.product >= 0 ? " " : ""}{p.product.toFixed(3)}</b>
-                  </span>
-                ))}
-              </div>
-              <p className="mt-1.5 font-mono text-xs text-muted-foreground">sum = {info.products.reduce((a, p) => a + p.product, 0).toFixed(3)}</p>
-            </div>
-          )}
-
-          {info.extra.length > 0 && (
-            <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 font-mono text-sm">
-              {info.extra.map(([a, b]) => <div key={a} className="contents"><dt className="text-xs tracking-wider text-muted-foreground">{a}</dt><dd className="break-words">{b}</dd></div>)}
-            </dl>
-          )}
-
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <GridCanvas title="gray, 15 × 15" grid={crop(gray, y, x, 7)} read={[[6, 6], [6, 7], [6, 8], [7, 6], [7, 8], [8, 6], [8, 7], [8, 8]]} write={[[7, 7]]} />
-            <GridCanvas title={view === "color" ? "gray (no filter)" : `${meta.label}, 15 × 15`} grid={crop(filtered.shown, y, x, 7)} write={[[7, 7]]}
-                        shapes={view === "corners" ? filtered.corners!.filter(([cy, cx]) => Math.abs(cy - y) <= 7 && Math.abs(cx - x) <= 7).map(([cy, cx]) => ({ kind: "point" as const, x: cx - x + 7, y: cy - y + 7 })) : undefined} />
-          </div>
-
-          {meta.page && view !== "color" && (
-            <Link href={`/algo/${meta.page}`} className="mt-4 inline-flex items-center gap-1 text-sm text-accent hover:underline">
-              {meta.label}, step by step <ArrowUpRight aria-hidden className="size-4" />
-            </Link>
-          )}
-        </aside>
+      <div className="mt-4 flex flex-wrap items-baseline justify-between gap-3">
+        <p className="max-w-3xl text-sm text-muted-foreground">{meta.what}</p>
+        {meta.page && (
+          <Link href={`/algo/${meta.page}`} className="inline-flex items-center gap-1 text-sm text-accent hover:underline">
+            {meta.label}, step by step <ArrowUpRight aria-hidden className="size-4" />
+          </Link>
+        )}
       </div>
     </div>
   );

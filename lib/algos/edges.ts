@@ -62,7 +62,7 @@ export function hysteresis(w: number, h: number, thin: Float64Array, low: number
   return L.map(v => (v === -1 ? 0 : v));
 }
 
-const THRESHOLDS: Record<string, [number, number]> = { "0.15 / 0.40": [0.15, 0.4], "0.15 / 0.25": [0.15, 0.25], "0.40 / 0.60": [0.4, 0.6] };
+export const THRESHOLDS: Record<string, [number, number]> = { "0.15 / 0.40": [0.15, 0.4], "0.15 / 0.25": [0.15, 0.25], "0.40 / 0.60": [0.4, 0.6] };
 const f = (v: number) => v.toFixed(3);
 
 export const edges: Algorithm = {

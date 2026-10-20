@@ -6,8 +6,8 @@ import { og } from "@/lib/og";
 
 export const metadata: Metadata = {
   title: "Photograph lab",
-  description: "VisuCV's algorithms on a real photograph, from the whole picture down to one pixel.",
-  openGraph: og("Photograph lab · VisuCV", "VisuCV's algorithms on a real photograph, from the whole picture down to one pixel."),
+  description: "Run VisuCV's algorithms on a real photograph and compare the result with the original.",
+  openGraph: og("Photograph lab · VisuCV", "Run VisuCV's algorithms on a real photograph and compare the result with the original."),
 };
 
 export default function PhotoPage() {
@@ -17,9 +17,9 @@ export default function PhotoPage() {
         <ArrowLeft aria-hidden className="size-4" /> All algorithms
       </Link>
       <p className="mt-4 font-mono text-xs uppercase tracking-widest text-accent">Photograph lab</p>
-      <h1 className="mt-1 text-3xl font-bold tracking-tight xl:text-4xl">From the whole picture to a single pixel.</h1>
+      <h1 className="mt-1 text-3xl font-bold tracking-tight xl:text-4xl">What does your photo become?</h1>
       <p className="mt-3 max-w-2xl text-lg leading-relaxed">
-        The same algorithms as the step-through pages, on a real photo. Pick a filter, then point at any pixel to see every number that made it.
+        The same algorithms as the step-through pages, on a real photo. Pick one, turn its knobs, and see what the picture becomes next to the original.
       </p>
       <PhotoLab />
       <p className="mt-10 text-xs text-muted-foreground">

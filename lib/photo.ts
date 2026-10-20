@@ -1,13 +1,16 @@
-// Photograph lab: VisuCV's own algorithms applied to a real photo, plus a per-pixel inspector.
-// Everything works on a gray image (0..1); the filters call the same code as the step-through pages,
-// but the plain functions, not the step generators (a 384×384 photo has ~150k pixels).
-import { KERNELS, type Kernel, correlateAt, filter2d, sample } from "./algos/convolution";
-import { gradient } from "./algos/edges";
+// Photograph lab: VisuCV's own algorithms applied to a real photo, shown next to the original.
+// Everything works on a gray image (0..1) and calls the plain functions behind the step-through pages,
+// never their step generators (a 384×384 photo has ~150k pixels; a step per pixel would crawl).
+import { components } from "./algos/components";
+import { KERNELS, filter2d } from "./algos/convolution";
+import { chamfer, distance, show } from "./algos/distance";
+import { THRESHOLDS, edges, gradient, hysteresis, nmsAt } from "./algos/edges";
 import { gaussian } from "./algos/gaussian";
-import { type Tensor, detect, eig2, score, structureTensor } from "./algos/harris";
-import { nonlinearFilter } from "./algos/nonlinear";
+import { detect, harris, score, structureTensor } from "./algos/harris";
+import { morphology } from "./algos/morphology";
+import { nonlinear, nonlinearFilter } from "./algos/nonlinear";
 import { otsuThreshold } from "./algos/otsu";
-import { type Cell, type Grid, grid } from "./algos/types";
+import { type Algorithm, type Cell, type Grid, type Param, type Params, grid } from "./algos/types";
 
 /** OpenCV's cv2.cvtColor(…, COLOR_RGB2GRAY) weights (ITU-R BT.601), so numbers match Python. */
 export const GRAY_WEIGHTS = [0.299, 0.587, 0.114] as const;
@@ -19,80 +22,84 @@ export function toGray(rgba: Uint8ClampedArray, w: number, h: number): Grid {
   return g;
 }
 
-export type FilterId = "gray" | "otsu" | "blur" | "median" | "sharpen" | "edges" | "corners";
-export type Filtered = { shown: Grid; raw: Float64Array | Float32Array; corners?: Cell[]; t?: number; tensor?: Tensor };
+export type FilterId = "gray" | "otsu" | "morphology" | "components" | "distance" | "blur" | "kernel" | "edges" | "nonlinear" | "corners";
+/** `shown` is drawn as is (a label image when shown.labels); `corners` are marked on top. */
+export type Filtered = { shown: Grid; corners?: Cell[] };
+export type PhotoFilter = { id: FilterId; label: string; page?: string; what: string; params: Param[]; binary?: true };
 
-// Sobel kernels as the edges page applies them: divided by their positive weights (sum 4).
-const SOBEL_X: Kernel = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]].map(r => r.map(v => v / 4));
-const SOBEL_Y: Kernel = SOBEL_X[0].map((_, j) => SOBEL_X.map(r => r[j]));
+/** The knobs of an algorithm's own page, so the lab and the page agree. */
+const knobs = (a: Algorithm, ...keys: string[]) => keys.map(k => a.params.find(p => p.key === k)!);
 
-export const FILTERS: { id: FilterId; label: string; page?: string; what: string }[] = [
-  { id: "gray", label: "Grayscale", what: "Each pixel's brightness, weighted for how the eye sees red, green and blue." },
-  { id: "otsu", label: "Otsu threshold", page: "otsu", what: "Pixels brighter than the histogram's best split become white." },
-  { id: "blur", label: "Gaussian blur", page: "gaussian", what: "A weighted average of the neighbourhood, σ = 1.5." },
-  { id: "median", label: "Median 3×3", page: "nonlinear", what: "The middle of the 9 sorted neighbours: removes specks, keeps edges." },
-  { id: "sharpen", label: "Sharpen", page: "convolution", what: "Adds the difference from the neighbours back to the pixel." },
-  { id: "edges", label: "Edges", page: "edges", what: "Gradient magnitude √(Gx² + Gy²) from the Sobel operator." },
-  { id: "corners", label: "Harris corners", page: "harris", what: "Points where the gradient changes in every direction." },
+export const FILTERS: PhotoFilter[] = [
+  { id: "gray", label: "Grayscale", what: "Each pixel's brightness, weighted for how the eye sees red, green and blue.", params: [] },
+  { id: "otsu", label: "Otsu threshold", page: "otsu", what: "Pixels brighter than the histogram's best split become white.", params: [] },
+  { id: "morphology", label: "Morphology", page: "morphology", binary: true, what: "Erode, dilate, open or close the white regions with a small shape B.", params: knobs(morphology, "op", "size", "shape") },
+  // A photo's Otsu image has hundreds of specks, so the size filter needs bigger steps than the page's 1 / 3 / 10.
+  { id: "components", label: "Components", page: "components", binary: true, what: "Every separate white blob gets its own colour.",
+    params: [knobs(components, "conn")[0], { ...knobs(components, "minSize")[0], options: [1, 10, 100] }] },
+  { id: "distance", label: "Distance transform", page: "distance", binary: true, what: "Each white pixel's distance to the nearest black one: brighter = deeper inside.", params: knobs(distance, "metric", "shading") },
+  { id: "blur", label: "Gaussian blur", page: "gaussian", what: "A weighted average of the neighbourhood; bigger σ, wider average.", params: knobs(gaussian, "sigma") },
+  { id: "kernel", label: "Convolution", page: "convolution", what: "Slide a 3×3 kernel and sum the products. Signed kernels show 0 as mid-gray.",
+    params: [{ key: "kernel", label: "Kernel", options: Object.keys(KERNELS), default: "sharpen" }] },
+  { id: "edges", label: "Canny edges", page: "edges", what: "Blur, take the gradient, thin it to ridge tops, keep weak edges only if they touch strong ones.", params: knobs(edges, "operator", "thresholds") },
+  { id: "nonlinear", label: "Median & friends", page: "nonlinear", what: "Median removes specks and keeps edges; min/max erode and dilate gray levels; bilateral smooths inside regions only.", params: knobs(nonlinear, "filter", "window", "sigmaR") },
+  { id: "corners", label: "Harris corners", page: "harris", what: "Points where the gradient changes in every direction.", params: knobs(harris, "method", "window") },
 ];
 
-const clip = (v: number) => Math.min(1, Math.max(0, v));
+export const defaults = (f: PhotoFilter): Params => Object.fromEntries(f.params.map(p => [p.key, p.default]));
 
-export function applyFilter(I: Grid, id: FilterId): Filtered {
-  if (id === "otsu") {
-    const t = otsuThreshold(I);
-    const shown = { ...I, data: I.data.map(v => (Math.round(v * 255) > t ? 1 : 0)) };
-    return { shown, raw: shown.data, t };
+const clip = (v: number) => Math.min(1, Math.max(0, v));
+const absMax = (a: ArrayLike<number>) => { let m = 1e-12; for (let k = 0; k < a.length; k++) m = Math.max(m, Math.abs(a[k])); return m; };
+const otsu = (I: Grid): Grid => { const t = otsuThreshold(I); return { ...I, data: I.data.map(v => (Math.round(v * 255) > t ? 1 : 0)) }; };
+
+/** Book §4.2 labeling with an explicit stack (a photo's blobs are too big for recursion), then the §4.3 size filter. */
+function label(A: Grid, conn: number, minSize: number): Grid {
+  const { h, w } = A, L = new Float32Array(h * w), sizes = [0];
+  const nb = conn === 8 ? [[0, 1], [0, -1], [1, 0], [-1, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]] : [[0, 1], [0, -1], [1, 0], [-1, 0]];
+  for (let s = 0; s < h * w; s++) {
+    if (!A.data[s] || L[s]) continue;
+    const k = sizes.length, stack = [s];
+    L[s] = k; sizes.push(0);
+    while (stack.length) {
+      const p = stack.pop()!, y = Math.floor(p / w), x = p % w;
+      sizes[k]++;
+      for (const [dy, dx] of nb) {
+        const yy = y + dy, xx = x + dx, q = yy * w + xx;
+        if (yy >= 0 && yy < h && xx >= 0 && xx < w && A.data[q] && !L[q]) { L[q] = k; stack.push(q); }
+      }
+    }
   }
-  if (id === "blur") { const b = gaussian.run(I, { sigma: 1.5 }); return { shown: b, raw: b.data }; }
-  if (id === "median") { const m = nonlinearFilter(I, { filter: "median", window: "3×3" }); return { shown: m, raw: m.data }; }
-  if (id === "sharpen") {
-    const raw = filter2d(I, KERNELS.sharpen, "correlation", "replicate");
-    return { shown: { ...I, data: Float32Array.from(raw, clip) }, raw };
-  }
-  if (id === "edges") {
-    const { mag } = gradient(I, "Sobel"), m = mag.reduce((a, b) => Math.max(a, b), 1e-9); // no spread: ~150k values
-    return { shown: { ...I, data: Float32Array.from(mag, v => v / m) }, raw: mag };
-  }
-  if (id === "corners") {
-    const T = structureTensor(I, 1), S = Float64Array.from({ length: I.h * I.w }, (_, k) => score(T, k, "Harris"));
-    // Plateau centres can be fractional (detect); the lab marks and counts whole pixels.
-    const corners = detect(S, I.h, I.w).map(([y, x]): Cell => [Math.round(y), Math.round(x)]);
-    return { shown: I, raw: S, corners, tensor: T };
-  }
-  return { shown: I, raw: I.data };
+  // Renumber the kept blobs 1, 2, 3… so the palette cycles over what's left.
+  let n = 0;
+  const id = sizes.map((s, k) => (k && s >= minSize ? ++n : 0));
+  return { h, w, labels: true, data: L.map(v => id[v]) };
 }
 
-export type Inspect = {
-  gray: number; out: number;
-  /** 3×3 table for kernel filters: value × weight = product, summing to `out` (before display clipping). */
-  products?: { value: number; weight: number; product: number }[];
-  extra: [string, string][];
-};
+/** Canny as the edges page runs it (σ = 1 blur, thresholds relative to the largest gradient), minus the steps. */
+function canny(I: Grid, operator: string, thresholds: string): Grid {
+  const B = gaussian.run(I, { sigma: 1 }), g = gradient(B, operator), max = absMax(g.mag), [lo, hi] = THRESHOLDS[thresholds];
+  const thin = Float64Array.from(g.mag, (m, k) => (m >= lo * max && nmsAt(I.w, I.h, g.mag, g.theta[k], k).keep ? m : 0));
+  return { ...I, data: Float32Array.from(hysteresis(I.w, I.h, thin, lo * max, hi * max), v => (v ? 1 : 0)) };
+}
 
-const f3 = (v: number) => v.toFixed(3);
-const products = (I: Grid, K: Kernel, y: number, x: number) =>
-  [-1, 0, 1].flatMap(i => [-1, 0, 1].map(j => {
-    const value = sample(I, y + i, x + j, "replicate"), weight = K[i + 1][j + 1];
-    return { value, weight, product: value * weight };
-  }));
-
-export function inspect(I: Grid, f: Filtered, id: FilterId, y: number, x: number): Inspect {
-  const k = y * I.w + x, gray = I.data[k], out = f.raw[k];
-  if (id === "sharpen") return { gray, out, products: products(I, KERNELS.sharpen, y, x), extra: [["display", "clipped to 0…1"]] };
-  if (id === "edges") {
-    const gx = correlateAt(I, SOBEL_X, y, x, "replicate"), gy = correlateAt(I, SOBEL_Y, y, x, "replicate");
-    return { gray, out, products: products(I, SOBEL_X, y, x), extra: [["Gx (table)", f3(gx)], ["Gy", f3(gy)], ["√(Gx² + Gy²)", f3(Math.hypot(gx, gy))]] };
+export function applyFilter(I: Grid, id: FilterId, p: Params = defaults(FILTERS.find(f => f.id === id)!)): Filtered {
+  const A = FILTERS.find(f => f.id === id)!.binary ? otsu(I) : I;
+  if (id === "otsu") return { shown: otsu(I) };
+  if (id === "morphology") return { shown: morphology.run(A, p) };
+  if (id === "components") return { shown: label(A, +p.conn, +p.minSize) };
+  if (id === "distance") { const D = chamfer(A, p.metric as Parameters<typeof chamfer>[1]); return { shown: show(D, A, absMax(D), p.shading === "bands") }; }
+  if (id === "blur") return { shown: gaussian.run(I, p) };
+  if (id === "kernel") {
+    const K = KERNELS[p.kernel as string], raw = filter2d(I, K, "convolution", "reflect 101");
+    const signed = Math.abs(K.flat().reduce((a, b) => a + b, 0)) < 1e-9, m = absMax(raw);
+    return { shown: { ...I, data: Float32Array.from(raw, v => (signed ? 0.5 + v / (2 * m) : clip(v))) } };
   }
-  if (id === "otsu") return { gray, out, extra: [["level", String(Math.round(gray * 255))], ["t* (Otsu)", String(f.t)], ["rule", `${Math.round(gray * 255)} ${Math.round(gray * 255) > f.t! ? ">" : "≤"} ${f.t} → ${out}`]] };
-  if (id === "median") {
-    const vals = [-1, 0, 1].flatMap(i => [-1, 0, 1].map(j => sample(I, y + i, x + j, "replicate"))).sort((a, b) => a - b);
-    return { gray, out, extra: [["sorted 3×3", vals.map(v => Math.round(v * 255)).join(" ")], ["median (5th)", String(Math.round(vals[4] * 255))]] };
-  }
+  if (id === "edges") return { shown: canny(I, String(p.operator), String(p.thresholds)) };
+  if (id === "nonlinear") return { shown: nonlinearFilter(I, p) };
   if (id === "corners") {
-    const T = f.tensor!, { l1, l2 } = eig2(T.a[k], T.b[k], T.c[k]);
-    return { gray, out, extra: [["λ₁, λ₂", `${f3(l1)}, ${f3(Math.max(0, l2))}`], ["corners found", String(f.corners!.length)]] };
+    const T = structureTensor(I, p.window === "5×5" ? 2 : 1), S = Float64Array.from({ length: I.h * I.w }, (_, k) => score(T, k, String(p.method)));
+    // Plateau centres can be fractional (detect); the lab marks whole pixels.
+    return { shown: I, corners: detect(S, I.h, I.w).map(([y, x]): Cell => [Math.round(y), Math.round(x)]) };
   }
-  if (id === "blur") return { gray, out, extra: [["kernel", "11 × 11 Gaussian, σ = 1.5"]] };
-  return { gray, out, extra: [] };
+  return { shown: I };
 }

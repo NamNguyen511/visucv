@@ -118,7 +118,7 @@ export function Player({ id }: { id: string }) {
               <select
                 className={select}
                 value={params[p.key]}
-                onChange={e => setParam(p.key, typeof p.default === "number" ? +e.target.value : e.target.value)}
+                onChange={e => setParam(p.key, p.options.find(o => String(o) === e.target.value)!)} // keeps "∞" a string, 3 a number
               >
                 {p.options.map(o => <option key={o} value={o}>{o}</option>)}
               </select>
