@@ -10,6 +10,7 @@ import { momentsAlgo } from "./moments";
 import { morphology } from "./morphology";
 import { nonlinear } from "./nonlinear";
 import { otsu } from "./otsu";
+import { pinhole } from "./pinhole";
 import { ransacAlgo } from "./ransac";
 import { transforms } from "./transforms";
 import { warping } from "./warping";
@@ -31,6 +32,7 @@ export const algorithms: Record<string, Algorithm> = {
   [harris.meta.id]: harris,
   [flow.meta.id]: flow,
   [ransacAlgo.meta.id]: ransacAlgo,
+  [pinhole.meta.id]: pinhole,
 };
 
 // Topic map. `id` set = page exists; no id = "coming soon".
@@ -61,7 +63,7 @@ export const topics: { name: string; items: { title: string; id?: string }[] }[]
     { title: "RANSAC", id: "ransac" },
   ]},
   { name: "3-D vision", items: [
-    { title: "Pinhole camera & image formation" },
+    { title: "Pinhole camera & image formation", id: "pinhole" },
     { title: "Epipolar geometry" },
     { title: "Structure from motion" },
   ]},

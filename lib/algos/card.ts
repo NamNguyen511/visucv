@@ -10,9 +10,10 @@ export type CardData = {
 
 const plain = (g: Grid): GridData => ({ h: g.h, w: g.w, data: [...g.data], labels: g.labels });
 
-/** "Birchfield, Ch. 5 — … · Ch. 6 — …" → "Ch. 5–6". */
+/** "Birchfield, Ch. 5 — … · Ch. 6 — …" → "Ch. 5–6"; a ref with no chapter is shown as is. */
 export function chapter(ref: string) {
   const n = [...ref.matchAll(/Ch\. (\d+)/g)].map(m => m[1]);
+  if (!n.length) return ref;
   return n.length > 1 ? `Ch. ${n[0]}–${n.at(-1)}` : `Ch. ${n[0]}`;
 }
 
