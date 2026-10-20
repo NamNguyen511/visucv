@@ -5,16 +5,16 @@ import { type P3, scene } from "./pinhole";
 import { type Line, segment } from "./ransac";
 import { type Algorithm, type Cell, type Grid, type Params, type Shape, type Step, grid } from "./types";
 
-type M3 = number[][]; // 3×3, row-major
-type V3 = [number, number, number];
+export type M3 = number[][]; // 3×3, row-major
+export type V3 = [number, number, number];
 
 const S = 21, C = (S - 1) / 2, FOCAL = 20;
 export const K: M3 = [[FOCAL, 0, C], [0, FOCAL, C], [0, 0, 1]];
-const Kinv: M3 = [[1 / FOCAL, 0, -C / FOCAL], [0, 1 / FOCAL, -C / FOCAL], [0, 0, 1]];
+export const Kinv: M3 = [[1 / FOCAL, 0, -C / FOCAL], [0, 1 / FOCAL, -C / FOCAL], [0, 0, 1]];
 
-const mul = (A: M3, B: M3): M3 => A.map(r => B[0].map((_, j) => r.reduce((s, v, k) => s + v * B[k][j], 0)));
-const apply = (A: M3, v: V3): V3 => A.map(r => r[0] * v[0] + r[1] * v[1] + r[2] * v[2]) as V3;
-const T = (A: M3): M3 => A[0].map((_, j) => A.map(r => r[j]));
+export const mul = (A: M3, B: M3): M3 => A.map(r => B[0].map((_, j) => r.reduce((s, v, k) => s + v * B[k][j], 0)));
+export const apply = (A: M3, v: V3): V3 => A.map(r => r[0] * v[0] + r[1] * v[1] + r[2] * v[2]) as V3;
+export const T = (A: M3): M3 => A[0].map((_, j) => A.map(r => r[j]));
 const skew = ([x, y, z]: V3): M3 => [[0, -z, y], [z, 0, -x], [-y, x, 0]];
 const rotY = (a: number): M3 => [[Math.cos(a), 0, Math.sin(a)], [0, 1, 0], [-Math.sin(a), 0, Math.cos(a)]];
 
@@ -51,7 +51,7 @@ export function matches(setup: string, name: string) {
   const { R, t } = geometry(setup);
   return scene(name).flatMap((X: P3) => {
     const a = pixel(X as V3), b = pixel(apply(R, X as V3).map((v, k) => v + t[k]) as V3);
-    return a && b && inImage(a) && inImage(b) ? [{ x1: a, x2: b }] : [];
+    return a && b && inImage(a) && inImage(b) ? [{ x1: a, x2: b, X: X as V3 }] : [];
   });
 }
 
@@ -64,7 +64,7 @@ export const lineDist = ([a, b, c]: V3, [x, y]: [number, number]) => Math.abs(a 
 
 const opts = (p: Params) => ({ setup: String(p.setup), name: String(p.scene) });
 
-function render(pts: [number, number][]): Grid {
+export function render(pts: [number, number][]): Grid {
   const g = grid(S, S);
   for (const [x, y] of pts) if (inImage([x, y])) g.data[Math.round(y) * S + Math.round(x)] = 1;
   return g;

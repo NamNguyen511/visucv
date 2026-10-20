@@ -59,6 +59,7 @@ in the same roadmap order:
 | 15 | Features & motion | RANSAC | Ch 23 | ✅ |
 | 16 | 3-D vision | Pinhole camera & image formation | Ch 16 | ✅ |
 | 17 | 3-D vision | Epipolar geometry | — | ✅ |
+| 18 | 3-D vision | Structure from motion (two views) | — | ✅ |
 
 ## Not Doing (and Why)
 - Running user code / Pyodide — pseudocode chosen; saves ~10 MB and complexity.

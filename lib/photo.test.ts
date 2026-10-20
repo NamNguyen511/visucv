@@ -26,7 +26,7 @@ describe("photograph lab", () => {
         expect(shown.data.length, what).toBe(N * N);
         expect(shown.data.every(v => Number.isFinite(v) && (shown.labels ? v >= 0 : v >= 0 && v <= 1)), what).toBe(true);
       }
-  });
+  }, 30_000); // ~30 full-size runs: over the 5 s default when the suite runs in parallel
 
   it("every knob is a real option list with its default in it", () => {
     for (const f of FILTERS) for (const k of f.params) expect(k.options, `${f.id}.${k.key}`).toContain(k.default);

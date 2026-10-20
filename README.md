@@ -34,6 +34,7 @@ learning alongside it.
 | RANSAC Line Fitting | Ch. 23 |
 | Pinhole Camera & Image Formation | Ch. 16 |
 | Epipolar Geometry | — |
+| Structure from Motion (Two Views) | — |
 
 More are on the roadmap (see the home page).
 

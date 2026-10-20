@@ -13,6 +13,7 @@ import { nonlinear } from "./nonlinear";
 import { otsu } from "./otsu";
 import { pinhole } from "./pinhole";
 import { ransacAlgo } from "./ransac";
+import { sfm } from "./sfm";
 import { transforms } from "./transforms";
 import { warping } from "./warping";
 import type { Algorithm } from "./types";
@@ -35,6 +36,7 @@ export const algorithms: Record<string, Algorithm> = {
   [ransacAlgo.meta.id]: ransacAlgo,
   [pinhole.meta.id]: pinhole,
   [epipolar.meta.id]: epipolar,
+  [sfm.meta.id]: sfm,
 };
 
 // Topic map. `id` set = page exists; no id = "coming soon".
@@ -67,7 +69,7 @@ export const topics: { name: string; items: { title: string; id?: string }[] }[]
   { name: "3-D vision", items: [
     { title: "Pinhole camera & image formation", id: "pinhole" },
     { title: "Epipolar geometry", id: "epipolar" },
-    { title: "Structure from motion" },
+    { title: "Structure from motion", id: "sfm" },
   ]},
   { name: "Deep learning", items: [
     { title: "Convolution layers" },
