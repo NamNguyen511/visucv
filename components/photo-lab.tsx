@@ -124,7 +124,7 @@ export function PhotoLab() {
   if (!photo || !run) return <div className="mt-8 aspect-[3/2] animate-pulse rounded-2xl bg-pending" role="status" aria-label="Loading photograph" />;
 
   const edit = (next: Keyed[], select: number) => { setStages(next); setSel(select); };
-  const add = (id: FilterId, n = stages.length) => edit([...stages.slice(0, n), ...keyed([{ id, p: defaults(filter(id)) }]), ...stages.slice(n)], n);
+  const add = (id: FilterId, n = stages.length, select = n) => edit([...stages.slice(0, n), ...keyed([{ id, p: defaults(filter(id)) }]), ...stages.slice(n)], select);
   const move = (n: number, by: number) => {
     const next = [...stages], to = n + by;
     [next[n], next[to]] = [next[to], next[n]];
@@ -262,7 +262,7 @@ export function PhotoLab() {
           <TriangleAlert aria-hidden className="size-5 text-accent" />
           <span>{out && !out.input ? out.blocked : ""}</span>
           {out && !out.input && out.fix && (
-            <button className="rounded-lg border border-accent px-3 py-1 text-accent transition hover:bg-highlight active:translate-y-px" onClick={() => { refocus.current = `li:nth-child(${at + 2}) > button`; add(out.fix!, at); }}>
+            <button className="rounded-lg border border-accent px-3 py-1 text-accent transition hover:bg-highlight active:translate-y-px" onClick={() => { refocus.current = `[data-key="${stage.key}"] > button`; add(out.fix!, at, at + 1); }}>
               Add {filter(out.fix).label} before it
             </button>
           )}

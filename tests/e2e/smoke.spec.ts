@@ -294,8 +294,9 @@ test.describe("home", () => {
     await expect(blocked).toContainText("black-and-white");
     await page.getByRole("button", { name: "Add Otsu threshold before it" }).click();
     await expect(cards).toHaveText([/Gaussian blur/, /Otsu threshold/, /Morphology/]);
-    await expect(page.getByRole("button", { name: /^Stage 2: Otsu threshold/ })).toBeFocused(); // not <body>: the fix button is gone
-    await cards.nth(2).click();
+    const fixed = page.getByRole("button", { name: /^Stage 3: Morphology/ });
+    await expect(fixed).toBeFocused(); // not <body>: the fix button is gone
+    await expect(fixed).toHaveAttribute("aria-pressed", "true"); // still on the stage that was fixed
     await fresh("blur → Otsu → morphology");
 
     // An upstream knob changes the downstream result.
