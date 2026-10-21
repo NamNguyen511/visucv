@@ -269,7 +269,11 @@ test.describe("home", () => {
     await expect(shown).toBeVisible();
     const snap = () => shown.evaluate(c => (c as HTMLCanvasElement).toDataURL());
     const seen = new Set<string>();
-    const fresh = (what: string) => expect.poll(async () => { const d = await snap(); return seen.has(d) ? "same" : (seen.add(d), "new"); }, { message: what }).toBe("new");
+    // Waits for the worker's run first: while busy the canvas still holds the last pixels, which must not count as fresh.
+    const fresh = async (what: string) => {
+      await expect(page.locator("[aria-busy=false]"), what).toHaveCount(1);
+      await expect.poll(async () => { const d = await snap(); return seen.has(d) ? "same" : (seen.add(d), "new"); }, { message: what }).toBe("new");
+    };
     const cards = page.getByRole("list", { name: "Pipeline" }).getByRole("button", { name: /^Stage / });
     const add = (name: string) => page.getByRole("group", { name: "Add a stage" }).getByRole("button", { name: new RegExp(`^${name}`) }).click();
     const blocked = page.getByRole("status").filter({ hasText: /Needs a/ });
@@ -335,6 +339,49 @@ test.describe("home", () => {
     const [scroll, inner] = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
     expect(scroll).toBeLessThanOrEqual(inner);
     expect(errors).toEqual([]);
+  });
+
+  test("photograph lab: a slow stage runs off the main thread (no long tasks), and its result still arrives", async ({ page }) => {
+    await page.goto("/photo");
+    const shown = page.getByRole("img", { name: / of the photo$/ });
+    await expect(shown).toBeVisible();
+    await page.locator("label", { hasText: "Pixels" }).locator("select").selectOption("384");
+    await expect(page.getByText(/^384 × /)).toBeVisible();
+    await page.getByRole("button", { name: "Clear", exact: true }).click();
+    const knob = (label: string, v: string) => page.locator("label", { hasText: label }).locator("select").selectOption(v);
+    for (const n of [0, 1]) { // two bilateral 5×5 stages: ~0.5 s per recompute on the main thread
+      await page.getByRole("group", { name: "Add a stage" }).getByRole("button", { name: /^Median/ }).click();
+      await knob("Window", "5×5");
+      await knob("Filter", "bilateral");
+      await expect(page.getByRole("button", { name: new RegExp(`^Stage ${n + 1}`) })).toBeVisible();
+    }
+    await page.getByRole("button", { name: /^Stage 1/ }).click();
+    await expect(page.locator("[aria-busy=false]")).toHaveCount(1);
+    await page.evaluate(() => {
+      (window as unknown as { long: number[] }).long = [];
+      new PerformanceObserver(l => { for (const e of l.getEntries()) (window as unknown as { long: number[] }).long.push(e.duration); }).observe({ type: "longtask" });
+    });
+    const before = await shown.evaluate(c => (c as HTMLCanvasElement).toDataURL());
+    await knob("σ_r", "100"); // recomputes both stages
+    await expect(page.locator("[aria-busy=false]")).toHaveCount(1);
+    await expect.poll(() => shown.evaluate(c => (c as HTMLCanvasElement).toDataURL())).not.toBe(before);
+    expect(await page.evaluate(() => (window as unknown as { long: number[] }).long.filter(d => d >= 200))).toEqual([]);
+
+    // Removing a stage while a run is pending: the card that moves up (Morphology, 4th → 3rd) must never show the
+    // removed stage's result, not even for one render (a MutationObserver sees every one, however fast the worker is).
+    await page.getByRole("group", { name: "Add a stage" }).getByRole("button", { name: /^Otsu/ }).click();
+    await page.getByRole("group", { name: "Add a stage" }).getByRole("button", { name: /^Morphology/ }).click();
+    await expect(page.locator("[aria-busy=false]")).toHaveCount(1);
+    await page.evaluate(() => {
+      const seen: string[] = ((window as unknown as { morph: string[] }).morph = []), ol = document.querySelector("ol[aria-label=Pipeline]")!;
+      new MutationObserver(() => { for (const b of ol.querySelectorAll("button[aria-pressed]")) if (b.textContent!.startsWith("3. Morphology")) seen.push(b.textContent!); })
+        .observe(ol, { subtree: true, childList: true, characterData: true });
+    });
+    await page.getByRole("button", { name: /^Stage 1/ }).click();
+    await knob("σ_r", "50"); // recomputes both bilateral stages
+    await page.getByRole("button", { name: "Remove Otsu threshold" }).click();
+    await expect(page.getByRole("button", { name: /^Stage 3/ })).toHaveAccessibleName("Stage 3: Morphology (blocked)");
+    expect((await page.evaluate(() => (window as unknown as { morph: string[] }).morph)).filter(t => t.includes("black-and-white"))).toEqual([]); // Otsu's
   });
 
   test("photograph lab: both views fit, wipe splits, focus rings show, resolution changes, bad files say so and your photo still reloads", async ({ page }) => {

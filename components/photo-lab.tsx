@@ -7,7 +7,8 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, ArrowUpRight, ChevronRight, ImagePlus, Plus, TriangleAlert, X } from "lucide-react";
 import type { Params } from "@/lib/algos/types";
 import { LABEL_COLORS } from "@/lib/pixel";
-import { FILTERS, type FilterId, type Filtered, NAME, type Run, STARTERS, type Stage, defaults, filter, fits, runPipeline, toGray } from "@/lib/photo";
+import type { Grid } from "@/lib/algos/types";
+import { FILTERS, type FilterId, type Filtered, NAME, STARTERS, type Stage, type StageOut, defaults, filter, fits, toGray } from "@/lib/photo";
 
 const SAMPLES = [
   { src: "/photos/astronaut.jpg", label: "Astronaut" },
@@ -76,7 +77,7 @@ export function PhotoLab() {
   const [zoom, setZoom] = useState(0);
   const [split, setSplit] = useState(50);
   const [failed, setFailed] = useState<string | null>(null); // name of a file that wouldn't decode
-  const fileName = useRef("that file"), lastGood = useRef<string | null>(null), last = useRef<Run | undefined>(undefined);
+  const fileName = useRef("that file"), lastGood = useRef<string | null>(null);
   const before = useRef<HTMLCanvasElement>(null), after = useRef<HTMLCanvasElement>(null);
   const list = useRef<HTMLOListElement>(null), refocus = useRef<string | null>(null); // selector to focus after the next edit
   useEffect(() => {
@@ -102,9 +103,31 @@ export function PhotoLab() {
   useEffect(() => () => forget(lastGood.current), []);
 
   const gray = useMemo(() => (photo ? toGray(photo.rgba, photo.w, photo.h) : null), [photo]);
-  // Reuses the previous run's upstream results, so a knob only recomputes its stage and what follows.
-  const run = useMemo(() => (gray ? (last.current = runPipeline(gray, stages, last.current)) : null), [gray, stages]);
-  const at = Math.min(sel, stages.length - 1), stage = stages[at], out = run?.outs[at];
+  // The pipeline runs in a worker (lib/photo.worker.ts). Only one request is in flight; when it comes back, the
+  // effect sends the latest stages if they changed meanwhile, so a slow chain never queues up stale runs.
+  const [run, setRun] = useState<{ I: Grid; stages: Keyed[]; outs: StageOut[] } | null>(null);
+  const [crashed, setCrashed] = useState(false);
+  const worker = useRef<Worker | null>(null), sent = useRef<{ I: Grid; stages: Keyed[] } | null>(null), sentI = useRef<Grid | null>(null);
+  useEffect(() => {
+    const w = new Worker(new URL("../lib/photo.worker.ts", import.meta.url), { type: "module" });
+    w.onmessage = (e: MessageEvent<StageOut[]>) => { const s = sent.current!; sent.current = null; setRun({ ...s, outs: e.data }); };
+    w.onerror = () => { sent.current = null; setCrashed(true); };
+    worker.current = w;
+    return () => { w.terminate(); worker.current = sent.current = sentI.current = null; };
+  }, []);
+  useEffect(() => {
+    const w = worker.current;
+    if (!w || !gray || sent.current || crashed || (run && run.I === gray && run.stages === stages)) return;
+    sent.current = { I: gray, stages };
+    w.postMessage({ I: sentI.current === gray ? undefined : gray, stages });
+    sentI.current = gray;
+  }, [gray, stages, run, crashed]);
+  const busy = !run || run.I !== gray || run.stages !== stages; // shows the last results, dimmed, until the new ones arrive
+  // Another photo's results are another size: never draw them. Of this photo's, keep only those up to the first stage
+  // that was removed, added or moved since, so a card never shows another stage's (stale) result.
+  const kept = run && run.I === gray ? run.stages.findIndex((s, n) => s.key !== stages[n]?.key) : 0;
+  const outs = run && run.I === gray ? (kept < 0 ? run.outs : run.outs.slice(0, kept)) : [];
+  const at = Math.min(sel, stages.length - 1), stage = stages[at], out = outs[at] as StageOut | undefined;
   const meta = stage && filter(stage.id);
   // Memoized wrappers: a fresh object per render would repaint the big canvases on every wipe-slider tick.
   const grayF = useMemo(() => (gray ? { shown: gray } : null), [gray]);
@@ -112,7 +135,7 @@ export function PhotoLab() {
   const inputF = useMemo(() => (inputGrid ? { shown: inputGrid } : null), [inputGrid]);
   const shown: Filtered | null = !gray ? null : at < 0 ? grayF : out?.input ? out.out : null;
   const input: Filtered | null = inputF; // null = the colour photo
-  const end = run?.outs.length ? run.outs[run.outs.length - 1] : null, endKind = !end ? "gray" : end.input ? end.kind : null;
+  const end = outs.length ? outs[outs.length - 1] : null, endKind = !end ? "gray" : end.input ? end.kind : null;
 
   useEffect(() => {
     if (!photo || !shown) return;
@@ -121,7 +144,7 @@ export function PhotoLab() {
     paint(after.current, photo, shown);
   }, [photo, grayF, shown, input, mode]);
 
-  if (!photo || !run) return <div className="mt-8 aspect-[3/2] animate-pulse rounded-2xl bg-pending" role="status" aria-label="Loading photograph" />;
+  if (!photo || (!run && !crashed)) return <div className="mt-8 aspect-[3/2] animate-pulse rounded-2xl bg-pending" role="status" aria-label="Loading photograph" />;
 
   const edit = (next: Keyed[], select: number) => { setStages(next); setSel(select); };
   const add = (id: FilterId, n = stages.length, select = n) => edit([...stages.slice(0, n), ...keyed([{ id, p: defaults(filter(id)) }]), ...stages.slice(n)], select);
@@ -134,16 +157,17 @@ export function PhotoLab() {
   };
   const setKnob = (key: string, v: string | number) => setStages(all => all.map((s, n) => (n === at ? { ...s, p: { ...s.p, [key]: v } } : s)));
 
+  const dim = `transition-opacity ${busy ? "opacity-60 delay-200" : ""}`; // only a run slower than 200 ms dims anything
   const chip = (on: boolean) => `rounded-lg px-3 py-1.5 text-sm transition active:translate-y-px ${on ? "bg-highlight font-medium text-accent" : "text-muted-foreground hover:text-foreground"}`;
   const fit = `min(100%, ${(62 * photo.w) / photo.h}vh)`; // whole photo fits a screen's height (once scrolled to)
   const caption = "mb-1.5 font-mono text-xs uppercase tracking-widest text-muted-foreground";
   const label = meta?.label ?? "Grayscale", resultLabel = `${label} of the photo`;
-  const inputLabel = at < 0 ? "Original photo" : at === 0 ? "Gray photo" : `${filter(stages[at - 1].id).label} ${(run.outs[at - 1] as { out?: Filtered }).out?.data ? "values" : "result"}`;
+  const inputLabel = at < 0 ? "Original photo" : at === 0 ? "Gray photo" : `${filter(stages[at - 1].id).label} ${(outs[at - 1] as { out?: Filtered } | undefined)?.out?.data ? "values" : "result"}`;
   const icon = "rounded p-1 text-muted-foreground transition hover:bg-highlight hover:text-foreground disabled:opacity-30 disabled:hover:bg-transparent";
   const card = (on: boolean) => `w-full rounded-lg border p-1 text-left transition active:translate-y-px ${on ? "border-accent bg-highlight" : "border-border hover:border-accent"}`;
 
   return (
-    <div className="mt-8">
+    <div className="mt-8" aria-busy={busy}>
       <div className="flex flex-wrap items-center gap-2 border-y border-border py-3 text-sm">
         <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">Photo</span>
         {SAMPLES.map(s => (
@@ -182,7 +206,7 @@ export function PhotoLab() {
                 onClick={() => { refocus.current = "[data-key=input] > button"; edit([], -1); }}>Clear</button>
       </div>
 
-      <ol ref={list} aria-label="Pipeline" className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-2">
+      <ol ref={list} aria-label="Pipeline" className={`${dim} mt-3 grid grid-cols-[repeat(auto-fill,minmax(8.5rem,1fr))] gap-2`}>
         <li className="relative" data-key="input">
           <button aria-pressed={at < 0} onClick={() => setSel(-1)} className={card(at < 0)}>
             <Thumb photo={photo} f={grayF} />
@@ -191,17 +215,18 @@ export function PhotoLab() {
           </button>
         </li>
         {stages.map((s, n) => {
-          const o = run.outs[n], f = filter(s.id);
+          const o = outs[n] as StageOut | undefined, f = filter(s.id);
           return (
             <li key={s.key} data-key={s.key} className="relative">
               <ChevronRight aria-hidden className="absolute top-8 -left-2.5 size-4 text-muted-foreground" />
               <button aria-pressed={at === n} onClick={() => setSel(n)} className={card(at === n)}
-                      aria-label={`Stage ${n + 1}: ${f.label}${o.input ? "" : " (blocked)"}`}>
-                {o.input ? <Thumb photo={photo} f={o.out} /> : (
+                      aria-label={`Stage ${n + 1}: ${f.label}${!o || o.input ? "" : " (blocked)"}`}>
+                {!o ? <span className="block aspect-[3/2] w-full animate-pulse rounded-md bg-pending" />
+                  : o.input ? <Thumb photo={photo} f={o.out} /> : (
                   <span className="flex aspect-[3/2] w-full items-center justify-center rounded-md bg-pending"><TriangleAlert aria-hidden className="size-5 text-accent" /></span>
                 )}
                 <span className="mt-1 block truncate px-0.5 text-xs font-medium">{n + 1}. {f.label}</span>
-                <span className="block truncate px-0.5 text-[0.7rem] text-muted-foreground">{o.input ? `→ ${NAME[o.kind]}` : "blocked"}</span>
+                <span className="block truncate px-0.5 text-[0.7rem] text-muted-foreground">{!o ? "working…" : o.input ? `→ ${NAME[o.kind]}` : "blocked"}</span>
               </button>
               <span className="mt-0.5 flex justify-center gap-1">
                 <button className={icon} data-move={-1} disabled={n === 0} onClick={() => move(n, -1)} aria-label={`Move ${f.label} earlier`}><ArrowLeft aria-hidden className="size-3.5" /></button>
@@ -240,7 +265,7 @@ export function PhotoLab() {
             </select>
           </label>
         ))}
-        {shown && (
+        {!(out && !out.input) && (
           <div className="ml-auto flex flex-wrap items-center gap-1" role="group" aria-label="Compare">
             <button aria-pressed={mode === "side"} className={chip(mode === "side")} onClick={() => setMode("side")}>Side by side</button>
             <button aria-pressed={mode === "wipe"} className={chip(mode === "wipe")} onClick={() => setMode("wipe")}>Wipe</button>
@@ -255,9 +280,11 @@ export function PhotoLab() {
 
       <p className="mt-4 mb-2 font-mono text-xs text-muted-foreground">
         {photo.w} × {photo.h} pixels · {at < 0 ? "input" : `stage ${at + 1} of ${stages.length}`} · {label}
-        {out?.input ? ` · reads a ${NAME[at === 0 ? "gray" : (run.outs[at - 1] as { kind: keyof typeof NAME }).kind]}, gives a ${NAME[out.kind]}` : ""}
+        {out?.input ? ` · reads a ${NAME[at === 0 ? "gray" : (outs[at - 1] as { kind: keyof typeof NAME }).kind]}, gives a ${NAME[out.kind]}` : ""}
       </p>
-      {!shown ? (
+      {crashed ? (
+        <p role="alert" className="rounded-xl border border-dashed border-border p-6 text-sm">The pipeline stopped working. Reload the page to start it again.</p>
+      ) : out && !out.input ? (
         <div role="status" className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-border p-6 text-sm">
           <TriangleAlert aria-hidden className="size-5 text-accent" />
           <span>{out && !out.input ? out.blocked : ""}</span>
@@ -268,7 +295,7 @@ export function PhotoLab() {
           )}
         </div>
       ) : mode === "side" ? (
-        <div className="grid grid-cols-2 gap-4">
+        <div className={`${dim} grid grid-cols-2 gap-4`}>
           <figure className="mx-auto w-full" style={{ maxWidth: fit }}>
             <figcaption className={caption}>{inputLabel}</figcaption>
             <canvas ref={before} role="img" aria-label={at < 0 ? "Original photo" : `Input: ${inputLabel}`} className="pixels block w-full rounded-xl ring-1 ring-border" />
@@ -281,7 +308,7 @@ export function PhotoLab() {
       ) : (
         <>
           <div tabIndex={0} role="group" aria-label="Photograph: stage input on the left of the split, result on the right"
-               className="max-h-[70vh] overflow-auto rounded-xl ring-1 ring-border outline-none focus-visible:ring-2 focus-visible:ring-accent">
+               className={`${dim} max-h-[70vh] overflow-auto rounded-xl ring-1 ring-border outline-none focus-visible:ring-2 focus-visible:ring-accent`}>
             <div className="relative mx-auto" style={{ width: zoom ? photo.w * zoom : fit }}>
               <canvas ref={before} role="img" aria-label={at < 0 ? "Gray original photo" : `Input: ${inputLabel}`} className="pixels block w-full" />
               <canvas ref={after} role="img" aria-label={resultLabel} className="pixels absolute inset-0 block w-full"
