@@ -26,5 +26,13 @@ Grayscale, Otsu, morphology, connected components, distance transform, Gaussian 
 - Moments: the result is one ellipse, not a picture.
 - Fourier: `dft2` is square-only and O(n³), so it needs padding and a speed check first.
 - Geometric transforms: a rotated photo is a weak "what does it become".
-- Chaining (pipeline): parked with the Lovable Playground.
 - The per-pixel inspector: the step-through pages already do it better.
+
+## Pipeline (2026-10-21)
+The bench became a pipeline: a gray input, then stages in order, each with its own knobs and a thumbnail. The
+selected stage shows its input next to its output. Stages declare what they read (`needs`: gray or binary) and
+what they give (`gives`); a binary stage on a gray image is blocked with an "Add Otsu threshold before it" button
+instead of the old silent Otsu. Labels, corner lists and signed kernels end the chain. Distance passes on plain
+d / max, not its banded picture. Upstream results are reused, so a knob only recomputes downstream.
+Not doing yet: drag-and-drop (arrow buttons instead), running a page's step-through on a stage's real input,
+"builds on / used by" links, saving or sharing pipelines.

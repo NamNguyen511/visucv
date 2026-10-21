@@ -39,8 +39,9 @@ learning alongside it.
 More are on the roadmap (see the home page).
 
 **Photograph lab** (`/photo`): nine of the algorithms (Otsu threshold, morphology, components, distance
-transform, blur, convolution, Canny, median/bilateral, Harris) on a real photo, samples or your own
-(processed in your browser only), each with its page's knobs, shown side by side with the original.
+transform, blur, convolution, Canny, median/bilateral, Harris) chained into a pipeline on a real photo,
+samples or your own (processed in your browser only). Each stage keeps its page's knobs; the selected
+stage's input sits next to its output.
 
 ## Credit
 

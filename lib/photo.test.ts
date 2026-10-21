@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { KERNELS } from "./algos/convolution";
 import { type Grid, grid } from "./algos/types";
-import { FILTERS, applyFilter, defaults, toGray } from "./photo";
+import { FILTERS, STARTERS, type Stage, applyFilter, defaults, filter, runPipeline, toGray } from "./photo";
 
 // A photo-sized test image (384×384 ≈ 147k pixels): big arrays must not hit argument limits.
 const N = 384;
@@ -18,25 +19,30 @@ describe("photograph lab", () => {
   });
 
   it("every filter, at every option of every knob, runs on a full-size photo, keeps its size and stays drawable", () => {
-    const I = photo();
+    const I = photo(), B = applyFilter(I, "otsu").shown;
     for (const f of FILTERS)
       for (const p of [defaults(f), ...f.params.flatMap(k => k.options.map(o => ({ ...defaults(f), [k.key]: o })))]) {
-        const t = performance.now(), { shown } = applyFilter(I, f.id, p), what = `${f.id} ${JSON.stringify(p)}`;
+        const t = performance.now(), { shown } = applyFilter(f.needs === "binary" ? B : I, f.id, p), what = `${f.id} ${JSON.stringify(p)}`;
         expect(performance.now() - t, what).toBeLessThan(3000); // the browser is faster; this guards a step-per-pixel slip
         expect(shown.data.length, what).toBe(N * N);
         expect(shown.data.every(v => Number.isFinite(v) && (shown.labels ? v >= 0 : v >= 0 && v <= 1)), what).toBe(true);
       }
   }, 30_000); // ~30 full-size runs: over the 5 s default when the suite runs in parallel
 
-  it("every knob is a real option list with its default in it", () => {
+  it("every knob is a real option list with its default in it; every starter uses real options and runs to the end", () => {
     for (const f of FILTERS) for (const k of f.params) expect(k.options, `${f.id}.${k.key}`).toContain(k.default);
+    const I = photo();
+    for (const s of STARTERS) {
+      for (const { id, p } of s.stages) for (const k of filter(id).params) expect(k.options, `${s.label} ${id}.${k.key}`).toContain(p[k.key]);
+      expect(runPipeline(I, s.stages).outs.every(o => o.input), s.label).toBe(true);
+    }
   });
 
   it("Otsu splits the bright box from the background; the binary filters work on that split", () => {
-    const I = photo(), t = applyFilter(I, "otsu").shown;
+    const t = applyFilter(photo(), "otsu").shown;
     expect(t.data[200 * N + 200]).toBe(1);
     expect(t.data[10 * N + 10]).toBe(0);
-    const L = applyFilter(I, "components", { conn: 4, minSize: 1 }).shown;
+    const I = t, L = applyFilter(I, "components", { conn: 4, minSize: 1 }).shown;
     expect(L.labels).toBe(true);
     expect(new Set(L.data).size).toBe(2); // background + the one box
     const D = applyFilter(I, "distance", { metric: "chessboard", shading: "smooth" }).shown;
@@ -68,5 +74,52 @@ describe("photograph lab", () => {
     const c = applyFilter(g, "corners").corners!;
     expect(c.length).toBeGreaterThan(0);
     for (const [y, x] of c) expect(Number.isInteger(y) && Number.isInteger(x), `${y},${x}`).toBe(true);
+  });
+
+  const blobs: Stage[] = [{ id: "blur", p: { sigma: 1 } }, { id: "otsu", p: {} }, { id: "morphology", p: { op: "open", size: 3, shape: "square" } }, { id: "components", p: { conn: 4, minSize: 1 } }];
+
+  it("pipeline: each stage reads the one before it, and the box comes out as one blob", () => {
+    const I = photo(), { outs } = runPipeline(I, blobs);
+    expect(outs.map(o => o.input && o.kind)).toEqual(["gray", "binary", "binary", "labels"]);
+    expect(outs[0].input).toBe(I);
+    for (let n = 1; n < outs.length; n++) expect(outs[n].input, `stage ${n}`).toBe((outs[n - 1] as { out: { shown: unknown } }).out.shown);
+    const L = (outs[3] as { out: { shown: Grid } }).out.shown.data;
+    expect(new Set(L).size).toBe(2);
+  });
+
+  it("pipeline: a changed knob recomputes only its stage and the ones after it", () => {
+    const I = photo(), a = runPipeline(I, blobs);
+    const changed = blobs.map((s, n) => (n === 2 ? { ...s, p: { ...s.p, op: "close" } } : { ...s, p: { ...s.p } })); // equal copies upstream
+    const b = runPipeline(I, changed, a);
+    expect(b.outs[0]).toBe(a.outs[0]);
+    expect(b.outs[1]).toBe(a.outs[1]);
+    expect(b.outs[2]).not.toBe(a.outs[2]);
+    expect(b.outs[3]).not.toBe(a.outs[3]);
+    expect(runPipeline(photo(), blobs, a).outs[0]).not.toBe(a.outs[0]); // a new photo recomputes everything
+  });
+
+  it("pipeline: a binary stage on a gray image is blocked (no silent Otsu), and so is everything after it", () => {
+    const { outs } = runPipeline(photo(), [{ id: "blur", p: { sigma: 1 } }, { id: "morphology", p: defaults(filter("morphology")) }, { id: "otsu", p: {} }]);
+    expect(outs[0].input).toBeDefined();
+    expect(outs[1]).toEqual({ blocked: expect.stringMatching(/add Otsu threshold/), fix: "otsu" });
+    expect(outs[2]).toEqual({ blocked: expect.stringMatching(/stage before it/) });
+  });
+
+  it("pipeline: labels, corners and signed kernels end the chain; a binary image is fine for gray stages", () => {
+    const I = photo(), next = (s: Stage) => runPipeline(I, [s, { id: "blur", p: { sigma: 1 } }]).outs[1];
+    expect(next({ id: "corners", p: defaults(filter("corners")) })).toEqual({ blocked: expect.stringMatching(/list of corners/) });
+    expect(next({ id: "kernel", p: { kernel: "sharpen" } }).input).toBeDefined();
+    const signed = Object.keys(KERNELS).find(k => Math.abs(KERNELS[k].flat().reduce((a, b) => a + b, 0)) < 1e-9)!;
+    expect(next({ id: "kernel", p: { kernel: signed } })).toEqual({ blocked: expect.stringMatching(/signed/) });
+    expect(runPipeline(I, [blobs[1], blobs[3], blobs[0]]).outs[2]).toEqual({ blocked: expect.stringMatching(/label image/) });
+    expect(next({ id: "otsu", p: {} }).input).toBeDefined(); // binary → blur
+  });
+
+  it("pipeline: distance passes on plain d / max, not its banded picture", () => {
+    const { outs } = runPipeline(photo(), [{ id: "otsu", p: {} }, { id: "distance", p: { metric: "chessboard", shading: "bands" } }, { id: "blur", p: { sigma: 0.5 } }]);
+    const d = outs[1] as { out: { shown: Grid; data?: Grid } };
+    expect(outs[2].input).toBe(d.out.data);
+    expect(Math.max(...d.out.data!.data.slice(200 * N, 201 * N))).toBeCloseTo(1, 5); // the box's middle row holds the max
+    expect(d.out.data!.data[10 * N + 10]).toBe(0);
   });
 });

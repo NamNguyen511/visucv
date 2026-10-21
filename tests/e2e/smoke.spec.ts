@@ -229,33 +229,106 @@ test.describe("home", () => {
     }
   });
 
-  test("photograph lab: every algorithm changes the result, knobs change it too, the original stays, your own photo loads", async ({ page }) => {
+  test("photograph lab: dragging the wipe repaints nothing, focus survives remove / move-to-end / clear, captions match the data", async ({ page }) => {
+    await page.goto("/photo");
+    await expect(page.getByRole("img", { name: / of the photo$/ })).toBeVisible();
+    // Only the clip path moves: every render used to repaint both big canvases and the gray thumbnail.
+    await page.getByRole("button", { name: "Wipe", exact: true }).click();
+    await page.evaluate(() => {
+      const w = window as unknown as { puts: number }, put = CanvasRenderingContext2D.prototype.putImageData;
+      w.puts = 0;
+      CanvasRenderingContext2D.prototype.putImageData = function (this: CanvasRenderingContext2D, ...a: unknown[]) { w.puts++; return (put as (...x: unknown[]) => void).apply(this, a); } as typeof put;
+    });
+    for (const v of ["30", "60", "80"]) await page.getByLabel("Split position").fill(v);
+    expect(await page.evaluate(() => (window as unknown as { puts: number }).puts)).toBe(0);
+    await page.getByRole("button", { name: "Side by side", exact: true }).click();
+
+    const focused = () => page.evaluate(() => document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.textContent);
+    await page.getByRole("button", { name: "Remove Components" }).click();
+    expect(await focused()).toMatch(/^Stage 3: Morphology/); // the newly selected card, not <body>
+    await page.getByRole("button", { name: "Move Gaussian blur later" }).click();
+    await page.getByRole("button", { name: "Move Gaussian blur later" }).click(); // now last: its "later" button is disabled
+    expect(await focused()).toBe("Move Gaussian blur earlier");
+    await page.getByRole("button", { name: "Move Gaussian blur earlier" }).click();
+    await page.getByRole("button", { name: "Move Gaussian blur earlier" }).click(); // now first
+    expect(await focused()).toBe("Move Gaussian blur later");
+    await page.getByRole("button", { name: "Clear", exact: true }).click();
+    expect(await focused()).toMatch(/^Gray photo/);
+
+    // Distance hands on plain d / max, not its banded picture: the next stage's input caption says so.
+    await page.getByRole("button", { name: "How deep inside", exact: true }).click();
+    await page.getByRole("group", { name: "Add a stage" }).getByRole("button", { name: /^Gaussian blur/ }).click();
+    await expect(page.locator("figcaption").first()).toHaveText(/^Distance transform values/);
+  });
+
+  test("photograph lab: build a pipeline, blocked stages say why and fix in one click, edits flow downstream, your own photo loads", async ({ page }) => {
     const errors: string[] = [];
     page.on("pageerror", e => errors.push(e.message));
     await page.goto("/photo");
-    const shown = page.getByRole("img", { name: / of the photo$/ }), original = page.getByRole("img", { name: "Original photo" });
-    await expect(original).toBeVisible();
+    const shown = page.getByRole("img", { name: / of the photo$/ });
+    await expect(shown).toBeVisible();
     const snap = () => shown.evaluate(c => (c as HTMLCanvasElement).toDataURL());
-    const before = await original.evaluate(c => (c as HTMLCanvasElement).toDataURL());
     const seen = new Set<string>();
     const fresh = (what: string) => expect.poll(async () => { const d = await snap(); return seen.has(d) ? "same" : (seen.add(d), "new"); }, { message: what }).toBe("new");
-    const algos = page.getByRole("group", { name: "Algorithm" }).getByRole("button");
-    await expect(algos).toHaveCount(10);
-    for (const name of await algos.allInnerTexts()) {
+    const cards = page.getByRole("list", { name: "Pipeline" }).getByRole("button", { name: /^Stage / });
+    const add = (name: string) => page.getByRole("group", { name: "Add a stage" }).getByRole("button", { name: new RegExp(`^${name}`) }).click();
+    const blocked = page.getByRole("status").filter({ hasText: /Needs a/ });
+
+    // Every starter runs to the end with a fresh result.
+    for (const name of await page.getByRole("group", { name: "Starter pipelines" }).getByRole("button").allInnerTexts()) {
+      if (name === "Clear") continue;
       await page.getByRole("button", { name, exact: true }).click();
+      await expect(cards.filter({ hasText: "blocked" }), name).toHaveCount(0);
       await fresh(name);
     }
-    await page.getByRole("button", { name: "Gaussian blur", exact: true }).click();
+    await page.getByRole("button", { name: "Clear", exact: true }).click();
+    await expect(cards).toHaveCount(0);
+    await expect(page.getByText(/pipeline is empty/)).toBeVisible();
+
+    // Blur, then a binary stage: blocked (no silent threshold) until Otsu goes in before it.
+    await add("Gaussian blur");
+    await fresh("blur");
     await page.locator("label", { hasText: "σ" }).locator("select").selectOption("3");
     await fresh("σ = 3");
-    await page.getByRole("button", { name: "Median & friends", exact: true }).click();
+    await add("Morphology");
+    await expect(blocked).toContainText("black-and-white");
+    await page.getByRole("button", { name: "Add Otsu threshold before it" }).click();
+    await expect(cards).toHaveText([/Gaussian blur/, /Otsu threshold/, /Morphology/]);
+    await expect(page.getByRole("button", { name: /^Stage 2: Otsu threshold/ })).toBeFocused(); // not <body>: the fix button is gone
+    await cards.nth(2).click();
+    await fresh("blur → Otsu → morphology");
+
+    // An upstream knob changes the downstream result.
+    await cards.nth(0).click();
+    await page.locator("label", { hasText: "σ" }).locator("select").selectOption("0.5");
+    await cards.nth(2).click();
+    await fresh("σ = 0.5 upstream");
+
+    // Keyboard: move morphology before Otsu (blocked), focus stays on it, then move it back.
+    await page.getByRole("button", { name: "Move Morphology earlier" }).focus();
+    await page.keyboard.press("Enter");
+    await expect(cards).toHaveText([/Gaussian blur/, /Morphology.*blocked/, /Otsu threshold/]);
+    await expect(page.getByRole("button", { name: "Move Morphology earlier" })).toBeFocused();
+    await expect(blocked).toBeVisible();
+    await page.getByRole("button", { name: "Move Morphology later" }).press("Enter");
+    await expect(cards.filter({ hasText: "blocked" })).toHaveCount(0);
+
+    // Labels end the chain; removing a stage re-checks what follows.
+    await add("Components");
+    await add("Gaussian blur");
+    await expect(blocked).toContainText("label image");
+    await page.getByRole("button", { name: "Remove Gaussian blur" }).last().click();
+    await page.getByRole("button", { name: "Remove Otsu threshold" }).click();
+    await expect(cards.filter({ hasText: "blocked" })).toHaveCount(2); // morphology and components
+    await page.getByRole("button", { name: "Clear", exact: true }).click();
+
+    await add("Median & friends");
     await page.locator("label", { hasText: "Filter" }).locator("select").selectOption("bilateral");
     await fresh("bilateral");
     const sigmaR = page.locator("label", { hasText: "σ_r" }).locator("select");
     await sigmaR.selectOption("∞");
     await expect(sigmaR).toHaveValue("∞"); // a string option on a numeric knob must not turn into NaN
     await fresh("σ_r = ∞");
-    expect(await original.evaluate(c => (c as HTMLCanvasElement).toDataURL())).toBe(before); // the original never changes
     await page.getByLabel(/Use your own photo/).setInputFiles("public/photos/camera.jpg");
     await fresh("your photo");
     const [scroll, inner] = await page.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
@@ -267,10 +340,10 @@ test.describe("home", () => {
     await page.goto("/photo");
     await page.getByRole("button", { name: "Camera" }).click(); // square photo: the tallest sample
     const result = page.getByRole("img", { name: / of the photo$/ });
-    await page.getByRole("img", { name: "Original photo" }).scrollIntoViewIfNeeded();
+    await result.scrollIntoViewIfNeeded();
     await expect.poll(async () => (await result.boundingBox())!.height).toBeLessThanOrEqual(0.7 * page.viewportSize()!.height);
     await page.getByRole("button", { name: "Wipe", exact: true }).click();
-    const view = page.getByLabel(/original on the left of the split/);
+    const view = page.getByLabel(/input on the left of the split/);
     const overflow = () => view.evaluate(a => Math.max(a.scrollHeight - a.clientHeight, a.scrollWidth - a.clientWidth));
     await expect.poll(overflow).toBeLessThanOrEqual(1); // "Fit" shows the whole photo
     await page.getByLabel("Split position").fill("20");
@@ -297,7 +370,7 @@ test.describe("home", () => {
     const pixels = page.locator("label", { hasText: "Pixels" }).locator("select");
     await pixels.selectOption("384");
     await expect(page.getByText(/^384 × 384 /)).toBeVisible();
-    await page.getByRole("button", { name: "Harris corners", exact: true }).click();
+    await page.getByRole("group", { name: "Add a stage" }).getByRole("button", { name: /^Harris corners/ }).click();
     await expect(page.getByRole("link", { name: /^Harris corners, step by step/ })).toBeVisible();
     // Your own photo, then a bad file: the lab falls back to your photo and can still re-read it.
     await page.getByLabel(/Use your own photo/).setInputFiles("public/photos/chelsea.jpg");

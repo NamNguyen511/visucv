@@ -55,7 +55,7 @@ export default function Home() {
         <img src="/photos/chelsea.jpg" alt="" loading="lazy" className="h-20 w-32 rounded-lg object-cover [image-rendering:pixelated]" />
         <div className="min-w-0">
           <p className="font-mono text-xs uppercase tracking-widest text-accent">Photograph lab</p>
-          <p className="mt-1 font-semibold">Run nine of the algorithms on a real photo, next to the original.</p>
+          <p className="mt-1 font-semibold">Chain nine of the algorithms into a pipeline on a real photo.</p>
           <p className="text-sm text-muted-foreground">Sample photos or your own; it stays in your browser.</p>
         </div>
         <ArrowRight aria-hidden className="ml-auto size-5 shrink-0 text-accent transition group-hover:translate-x-0.5" />
